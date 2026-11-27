@@ -1696,6 +1696,9 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           visualPrompt: document.getElementById('dna-visual-prompt').value,
           anthro: document.getElementById('select-anthro').value,
           artstyle: document.getElementById('select-artstyle').value,
+          // 무료 엔진(Pollinations) 시드·엔진 선택도 함께 저장 — 다시 열어도 24컷 인상이 이어진다
+          pollSeed: currentPollSeed(),
+          imageEngine: state.imageEngine,
           slotsMeta: state.slots.map(s => ({ desc: s.desc, prompt: s.prompt, settings: s.settings }))
         };
         localStorage.setItem('emoticon_pro_project', JSON.stringify(payload));
@@ -1715,6 +1718,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         document.getElementById('dna-visual-prompt').value = data.visualPrompt || '';
         if (data.anthro) document.getElementById('select-anthro').value = data.anthro;
         if (data.artstyle) document.getElementById('select-artstyle').value = data.artstyle;
+        if (data.pollSeed) state.pollSeed = data.pollSeed;
+        if (data.imageEngine) { state.imageEngine = data.imageEngine === 'pollinations' ? 'pollinations' : 'auto'; renderImageEngineUI(); }
         if (Array.isArray(data.slotsMeta)) {
           data.slotsMeta.forEach((m, i) => {
             if (state.slots[i]) {
