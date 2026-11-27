@@ -3159,8 +3159,11 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     }
 
     async function framesToAPNG(frames, size, delayMs) {
+      // UPNG 는 로드 시점의 window.pako 를 쓰므로 pako 를 먼저 올린다.
+      if (!window.pako) await loadScriptOnce('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js');
       if (!window.UPNG) await loadScriptOnce('https://cdn.jsdelivr.net/npm/upng-js@2.1.0/UPNG.min.js');
       if (!window.UPNG) throw new Error('APNG 인코더를 불러오지 못했습니다.');
+      if (!window.pako) throw new Error('압축 라이브러리(pako)를 불러오지 못했습니다.');
       const buffers = frames.map(function (f) { return f.data.buffer; });
       const delays = frames.map(function () { return Math.max(10, Math.round(delayMs)); });
       const png = UPNG.encode(buffers, size, size, 0, delays);
