@@ -2473,7 +2473,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           ' No watermark, clean bold sticker line art, consistent colors.';
 
         const ref = await buildReferencePayload();
-        const payload = { action: 'emoticon_image', mode: 'sheet', prompt: prompt, aspectRatio: '16:9' };
+        const payload = { action: 'emoticon_image', mode: 'turnaround', prompt: prompt, aspectRatio: '16:9' };
         if (ref.ref) payload.reference = ref.ref;
         if (!ref.ref && state.uploadedPhotoDataUrl) {
           const photo = await downscaleDataUrl(state.uploadedPhotoDataUrl, 1024, 0.9);
@@ -3584,6 +3584,18 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       showToast(`${platform.toUpperCase()} ZIP(${done.length}종) 다운로드 완료!`, 'success');
     }
 
+    // AI가 'kr: "..."' 형태의 문자열을 그대로 줄 때 값만 뽑아낸다
+    function cleanSeoValue(v) {
+      if (typeof v !== 'string') return v;
+      let s = v.trim();
+      const m = s.match(/^(kr|en|jp|tw)\s*:\s*([\s\S]*)$/i);
+      if (m) {
+        s = m[2].trim();
+        if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) s = s.slice(1, -1);
+      }
+      return s;
+    }
+
     async function generateMultilingualSEO() {
       const btn = document.getElementById('btn-gen-seo');
       const orig = btn.innerHTML;
@@ -3601,10 +3613,10 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         }, { timeout: 60000 });
         if (!json.ok) throw new Error(apiMessage(json, 'SEO 생성에 실패했습니다.'));
         const d = json.data || {};
-        if (d.kr) document.getElementById('seo-kr').value = d.kr;
-        if (d.en) document.getElementById('seo-en').value = d.en;
-        if (d.jp) document.getElementById('seo-jp').value = d.jp;
-        if (d.tw) document.getElementById('seo-tw').value = d.tw;
+        if (d.kr) document.getElementById('seo-kr').value = cleanSeoValue(d.kr);
+        if (d.en) document.getElementById('seo-en').value = cleanSeoValue(d.en);
+        if (d.jp) document.getElementById('seo-jp').value = cleanSeoValue(d.jp);
+        if (d.tw) document.getElementById('seo-tw').value = cleanSeoValue(d.tw);
         showToast('다국어 SEO 정보가 생성되었습니다!', 'success');
       } catch (err) {
         console.error(err);
