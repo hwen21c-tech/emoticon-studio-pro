@@ -543,6 +543,21 @@
             </div>
           </div>
 
+          <!-- 🎛️ 이미지 엔진 선택 — Gemini 우선 / 무료 Pollinations 폴백 -->
+          <div class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-3 space-y-2 mb-3">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[11px] font-black text-slate-800 mr-0.5">🎛️ 이미지 엔진</span>
+              <button type="button" id="engine-chip-auto" onclick="setImageEngine('auto')" class="engine-chip px-2.5 py-1.5 rounded-lg border text-[11px] font-extrabold transition">🤖 자동 (Gemini 우선 → 무료 폴백)</button>
+              <button type="button" id="engine-chip-pollinations" onclick="setImageEngine('pollinations')" class="engine-chip px-2.5 py-1.5 rounded-lg border text-[11px] font-extrabold transition">🆓 무료 엔진 바로 쓰기</button>
+            </div>
+            <p id="engine-hint" class="text-[11px] font-bold text-indigo-800 leading-relaxed"></p>
+            <div id="free-engine-badge" class="hidden rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-2 text-[11px] font-bold text-amber-900 leading-relaxed">
+              ⏱️ 무료 Pollinations는 <b>IP당 45초에 1장</b>만 그립니다 — 24종 일괄은 <b>15~20분</b> 걸립니다. <b>1컷씩</b> 생성해 보시는 걸 추천해요.
+              <br />이미지 오른쪽 아래에 <b>pollinations.ai 로고</b>가 들어갑니다(무료 엔진 정책). 최종 납품용은 Gemini 엔진으로 다시 뽑아 주세요.
+            </div>
+            <p id="engine-last" class="hidden text-[11px] font-bold text-slate-600 leading-relaxed"></p>
+          </div>
+
           <!-- 실용 24종 기획 프리셋 -->
           <div class="rounded-2xl border border-slate-200 bg-slate-50/60 p-3 space-y-2">
             <div class="flex items-center justify-between">
@@ -1299,6 +1314,11 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
   <!-- 토스트 컨테이너 -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+  <!-- 🆓 무료 엔진(Pollinations) 쿨다운 배지 — 탭과 상관없이 보이게 화면 하단 고정 -->
+  <div id="free-wait-badge" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-50 max-w-[92vw] px-4 py-2.5 rounded-2xl bg-slate-900/92 text-white text-[11.5px] font-bold leading-relaxed text-center shadow-xl">
+    ⏳ 무료 엔진 쿨다운 ...
+  </div>
+
   <script>
     // =========================================================================
     // 1. 전역 상태 & 상수
@@ -1369,6 +1389,9 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       presetKey: 'basic',
       batchRunning: false,
       batchStop: false,
+      // 🎛️ 이미지 엔진 — 'auto'(Gemini 우선 → 무료 폴백) | 'pollinations'(무료 고정)
+      imageEngine: 'auto',
+      pollSeed: 0,
     };
 
     function createDefaultSettings(text) {
@@ -1742,10 +1765,108 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     function apiMessage(json, fallback) {
       const j = json || {};
       if (j.reason === 'missing_gemini_key') return '서버 Gemini 키가 설정되지 않았습니다. 관제탑 Vercel 환경변수를 확인해 주세요.';
-      if (j.reason === 'gemini_image_quota' || j.reason === 'quota_exceeded') return 'Gemini 이미지 하루 한도를 다 썼습니다. 내일 다시 시도해 주세요.';
+      if (j.reason === 'gemini_image_quota' || j.reason === 'quota_exceeded') return 'Gemini 이미지 하루 한도를 다 썼습니다 — 무료 엔진으로 대신 그립니다.';
+      if (j.reason === 'free_limit') return j.message || '무료 엔진은 45초에 1장만 그립니다. 잠시 뒤 다시 시도합니다.';
+      if (j.reason === 'pollinations_unavailable') return j.message || '무료 이미지 서버가 지금 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요.';
+      if (j.reason === 'time_budget') return j.message || 'Gemini 응답이 늦었습니다. 잠시 뒤 다시 시도해 주세요.';
       if (j.reason === 'body_too_large') return '이미지가 너무 큽니다. 더 작은 사진으로 다시 시도해 주세요.';
       if (j.reason === 'disabled') return '이 환경에서는 Gemini 호출이 꺼져 있습니다.';
       return j.message || fallback || 'AI 호출에 실패했습니다.';
+    }
+
+    // =========================================================================
+    // 4-c. 이미지 엔진 — Gemini 우선 → 무료 Pollinations 폴백 (11/27)
+    //      · 자동: Gemini 먼저, 하루 한도(429)면 서버가 무료 엔진으로 대신 그린다.
+    //      · 무료 고정: 처음부터 Pollinations — IP당 45초 1장·우하단 로고.
+    //      · seed 를 프로젝트당 하나로 고정해 24컷 인상을 최대한 붙인다.
+    // =========================================================================
+    function newPollSeed() {
+      state.pollSeed = 1000 + Math.floor(Math.random() * 899000);
+      return state.pollSeed;
+    }
+    function currentPollSeed() {
+      return state.pollSeed || newPollSeed();
+    }
+    function setImageEngine(engine) {
+      state.imageEngine = (engine === 'pollinations') ? 'pollinations' : 'auto';
+      renderImageEngineUI();
+      showToast(state.imageEngine === 'pollinations'
+        ? '🆓 무료 엔진(Pollinations) 고정 — 45초에 1장 제한이 있습니다.'
+        : '🤖 자동 엔진 — Gemini 우선, 한도(429)면 무료 엔진으로 자동 폴백합니다.', 'info');
+    }
+    function renderImageEngineUI() {
+      const auto = document.getElementById('engine-chip-auto');
+      const poll = document.getElementById('engine-chip-pollinations');
+      const on = 'px-2.5 py-1.5 rounded-lg border text-[11px] font-extrabold transition bg-indigo-600 border-indigo-600 text-white shadow-sm';
+      const off = 'px-2.5 py-1.5 rounded-lg border text-[11px] font-extrabold transition bg-white border-slate-300 text-slate-700 hover:border-indigo-400';
+      if (auto && poll) {
+        auto.className = state.imageEngine === 'pollinations' ? off : on;
+        poll.className = state.imageEngine === 'pollinations' ? on : off;
+      }
+      const hint = document.getElementById('engine-hint');
+      if (hint) hint.textContent = state.imageEngine === 'pollinations'
+        ? '처음부터 무료 엔진으로 그립니다 — Gemini 한도를 아끼고 싶을 때. 시드가 프로젝트마다 고정돼 24컷 인상을 맞춥니다.'
+        : 'Gemini 이미지가 되면 Gemini로, 하루 한도(429)면 자동으로 무료 엔진으로 넘어갑니다. 한도가 풀리면 다시 Gemini가 우선 동작합니다.';
+      const badge = document.getElementById('free-engine-badge');
+      if (badge) badge.classList.toggle('hidden', state.imageEngine !== 'pollinations');
+    }
+    function imageEnginePayload() {
+      return {
+        engine: state.imageEngine === 'pollinations' ? 'pollinations' : 'auto',
+        seed: currentPollSeed()
+      };
+    }
+    function noteEngineResult(json) {
+      const el = document.getElementById('engine-last');
+      if (!el || !json) return;
+      const used = json.usedEngine || json.engine;
+      if (used === 'pollinations') {
+        const why = json.fallbackReason === 'gemini_image_quota' ? 'Gemini 하루 한도(429)'
+          : json.fallbackReason === 'missing_gemini_key' ? '서버 Gemini 키 없음'
+          : json.fallbackReason ? json.fallbackReason : '무료 엔진 선택';
+        el.textContent = '최근 생성: 🆓 무료 엔진(Pollinations) · 이유: ' + why + ' · ' + (json.width || 768) + '×' + (json.height || 768) + ' · 우하단 로고 포함';
+        el.className = 'text-[11px] font-bold text-amber-700 leading-relaxed';
+      } else if (used === 'gemini') {
+        el.textContent = '최근 생성: 🤖 Gemini (' + (json.model || 'flash-image') + ')';
+        el.className = 'text-[11px] font-bold text-emerald-700 leading-relaxed';
+      }
+      el.classList.remove('hidden');
+    }
+    function usedEngineLabel(json) {
+      const used = (json && (json.usedEngine || json.engine)) || '';
+      return used === 'pollinations' ? '무료 엔진' : 'Gemini';
+    }
+    function setFreeWaitBadge(text) {
+      const b = document.getElementById('free-wait-badge');
+      if (!b) return;
+      if (!text) { b.classList.add('hidden'); b.innerHTML = ''; return; }
+      b.innerHTML = text;
+      b.classList.remove('hidden');
+    }
+    /* 402 FREE_LIMIT 쿨다운 — 배지 카운트다운 뒤 같은 요청을 다시 보낸다 */
+    async function waitFreeCooldown(sec) {
+      let left = Math.max(5, Math.min(90, Math.trunc(Number(sec) || 45)));
+      while (left > 0 && !state.batchStop) {
+        setFreeWaitBadge('⏳ 무료 엔진 쿨다운 <b>' + left + '초</b><br />끝나면 자동으로 다시 그립니다' + (state.batchRunning ? ' · [⏹ 중단]으로 멈출 수 있어요' : ''));
+        await new Promise(function (r) { setTimeout(r, 1000); });
+        left--;
+      }
+      setFreeWaitBadge('');
+      return !state.batchStop;
+    }
+    async function callEmoticonImage(payload, opts) {
+      opts = opts || {};
+      let json = await callContentAI(payload, { timeout: opts.timeout || 110000 });
+      let waits = 0;
+      while (json && !json.ok && json.reason === 'free_limit' && waits < 2) {
+        if (opts.setMsg) opts.setMsg('무료 엔진 대기 ' + (json.retryAfterSec || 45) + '초…');
+        const go = await waitFreeCooldown(json.retryAfterSec || 45);
+        if (!go) return json;
+        waits++;
+        if (opts.setMsg) opts.setMsg('무료 엔진으로 다시 생성 중…');
+        json = await callContentAI(payload, { timeout: opts.timeout || 110000 });
+      }
+      return json;
     }
 
     /* 기준 이미지를 1024px JPEG 로 줄여 전송한다(요청 본문 4.2MB 한도 보호) */
@@ -1991,10 +2112,15 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           if (photo) payload.reference = { data: photo.data, mimeType: photo.mimeType };
         }
 
-        const json = await callContentAI(payload, { timeout: 110000 });
+        Object.assign(payload, imageEnginePayload());
+        const json = await callEmoticonImage(payload, {
+          timeout: 110000,
+          setMsg: function (t) { btn.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin-fast"></div> ${t}`; }
+        });
         if (!json.ok) throw new Error(apiMessage(json, '캐릭터 시트 생성에 실패했습니다.'));
         setTurnaroundSheetPreview(`data:${json.mime || 'image/png'};base64,${json.data}`);
-        showToast('캐릭터 턴어라운드 시트가 생성되었습니다! [DNA 고정]을 눌러 24종에 적용하세요.', 'success');
+        noteEngineResult(json);
+        showToast('캐릭터 턴어라운드 시트가 생성되었습니다(' + usedEngineLabel(json) + ')! [DNA 고정]을 눌러 24종에 적용하세요.', 'success');
       } catch (err) {
         console.error(err);
         showToast('시트 생성 실패 — ' + (err.message || '서버 오류'), 'error');
@@ -2062,9 +2188,14 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         const payload = { action: 'emoticon_image', mode: 'sticker', prompt: prompt, aspectRatio: '1:1' };
         if (ref.ref) payload.reference = ref.ref;
 
-        const json = await callContentAI(payload, { timeout: 110000 });
+        Object.assign(payload, imageEnginePayload());
+        const json = await callEmoticonImage(payload, {
+          timeout: 110000,
+          setMsg: function (t) { if (loader) document.getElementById('studio-loader-msg').textContent = `#${slot.id} ${t}`; }
+        });
         if (!json.ok) { lastApiReason = json.reason || ''; throw new Error(apiMessage(json, '이미지 생성에 실패했습니다.')); }
         lastApiReason = '';
+        noteEngineResult(json);
 
         slot.rawImageUrl = `data:${json.mime || 'image/png'};base64,${json.data}`;
         slot.finalImageUrl = await renderSlotSnapshot(slot);
@@ -2075,7 +2206,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         renderBoard();
         updateDoneCount();
         updateReferenceStatus();
-        showToast(`#${slot.id} 생성 완료 (${ref.note} 기준)`, 'success');
+        showToast(`#${slot.id} 생성 완료 · ${usedEngineLabel(json)} (${ref.note} 기준)`, 'success');
       } catch (err) {
         console.error(err);
         showToast(`#${slot.id} 생성 실패 — ${err.message || '서버 오류'}`, 'error');
@@ -2104,7 +2235,11 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           if (state.slots[i].finalImageUrl && state.slots[i].finalImageUrl !== before) okCount++;
           else failCount++;
           if (lastApiReason === 'gemini_image_quota') {
-            showToast('Gemini 이미지 하루 한도를 다 써서 일괄 생성을 멈췄습니다. (성공 ' + okCount + ' / 실패 ' + failCount + ')', 'warn');
+            showToast('Gemini 이미지 하루 한도를 다 써서 일괄 생성을 멈췄습니다. 무료 엔진으로 1컷씩 이어가 보세요. (성공 ' + okCount + ' / 실패 ' + failCount + ')', 'warn');
+            break;
+          }
+          if (lastApiReason === 'free_limit' || lastApiReason === 'pollinations_unavailable') {
+            showToast('무료 엔진이 계속 막혀 일괄 생성을 멈췄습니다(45초 쿨다운 대기 후 재시도 2회). 1컷씩 시도해 주세요. (성공 ' + okCount + ' / 실패 ' + failCount + ')', 'warn');
             break;
           }
         }
@@ -2594,7 +2729,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           aspectRatio: '1:1',
           image: { data: b64, mimeType: 'image/png' }
         }, { timeout: 110000 });
-        if (!json.ok) throw new Error(apiMessage(json, '부분 수정에 실패했습니다.'));
+        if (!json.ok) throw new Error(apiMessage(json, '부분 수정에 실패했습니다. 부분 수정은 Gemini 전용이라 한도가 풀린 뒤 다시 시도해 주세요.'));
 
         slot.rawImageUrl = `data:${json.mime || 'image/png'};base64,${json.data}`;
         slot.finalImageUrl = await renderSlotSnapshot(slot);
@@ -3308,6 +3443,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       applyTheme(document.documentElement.classList.contains('theme-dark') ? 'dark' : 'light');
       updatePresetUI();
       updateReferenceStatus();
+      renderImageEngineUI();   // 🎛️ 이미지 엔진 칩(자동/무료) 초기 표시
       updateDoneCount();
       renderBoard();
       lucide.createIcons();
