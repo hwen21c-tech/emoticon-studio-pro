@@ -1874,9 +1874,11 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       opts = opts || {};
       let json = await callContentAI(payload, { timeout: opts.timeout || 110000 });
       let waits = 0;
-      while (json && !json.ok && json.reason === 'free_limit' && waits < 2) {
-        if (opts.setMsg) opts.setMsg('무료 엔진 대기 ' + (json.retryAfterSec || 45) + '초…');
-        const go = await waitFreeCooldown(json.retryAfterSec || 45);
+      while (json && !json.ok && json.reason === 'free_limit' && waits < 3) {
+        // 서버가 알려준 대기초 + 3초 여유 — 딱 맞춰 다시 걸면 경계에서 또 402 가 난다
+        const sec = Math.max(5, Math.min(90, (Number(json.retryAfterSec) || 45) + 3));
+        if (opts.setMsg) opts.setMsg('무료 엔진 대기 ' + sec + '초…');
+        const go = await waitFreeCooldown(sec);
         if (!go) return json;
         waits++;
         if (opts.setMsg) opts.setMsg('무료 엔진으로 다시 생성 중…');
