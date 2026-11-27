@@ -4049,6 +4049,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         } else {
           showToast('3×3 시트가 만들어졌습니다 — 바로 9등분합니다.', 'success');
         }
+        state.sheetBusy = false;   // 생성 락을 풀고 분할로 넘긴다(분할 함수도 같은 락을 본다)
         await splitGridSheet();
       } catch (err) {
         console.error(err);
