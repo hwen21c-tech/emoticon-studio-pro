@@ -1315,7 +1315,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- 🆓 무료 엔진(Pollinations) 쿨다운 배지 — 탭과 상관없이 보이게 화면 하단 고정 -->
-  <div id="free-wait-badge" class="hidden fixed left-0 right-0 bottom-0 z-[60] px-4 py-3 bg-slate-900/95 text-white text-[12.5px] font-bold leading-relaxed text-center shadow-2xl">
+  <div id="free-wait-badge" class="hidden fixed left-0 right-0 bottom-0 z-[60] px-4 py-3 bg-slate-900 border-t border-white/10 text-white text-[12.5px] font-bold leading-relaxed text-center shadow-2xl">
     ⏳ 무료 엔진 쿨다운 ...
   </div>
 
@@ -1859,7 +1859,18 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       setFreeWaitBadge('');
       return !state.batchStop;
     }
+    let emoticonImageLock = Promise.resolve();
+    /* 무료 엔진은 IP당 '동시 1장·45초 1장'이라 두 컷을 동시에 누르면 둘 다 402 로 막힌다.
+       생성 요청을 한 줄로 세워 두 번째 컷이 첫 컷 뒤에서 기다렸다가 자기 차례에 그린다. */
+    function runImageLocked(task) {
+      const next = emoticonImageLock.then(task, task);
+      emoticonImageLock = next.then(function () {}, function () {});
+      return next;
+    }
     async function callEmoticonImage(payload, opts) {
+      return runImageLocked(function () { return callEmoticonImageOnce(payload, opts); });
+    }
+    async function callEmoticonImageOnce(payload, opts) {
       opts = opts || {};
       let json = await callContentAI(payload, { timeout: opts.timeout || 110000 });
       let waits = 0;
