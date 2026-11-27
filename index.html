@@ -1,0 +1,3289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>이모티콘 스튜디오 AI Pro · Emoticon Studio</title>
+  <meta name="description" content="사물 사진 한 장으로 24종 이모티콘을 만드는 AI 스튜디오 — 기준 캐릭터 고정, 그림 속 글씨 금지, 라이트·다크 일괄 검수, OGQ·LINE ZIP, 움직이는 스티커 내보내기." />
+  <meta id="metaThemeColor" name="theme-color" content="#4f46e5" />
+
+  <!-- ===== 홈 화면 독립 앱 설치(PWA) ===== -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="이모티콘" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/emoticon-apple-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/emoticon-192.png" />
+
+  <script>
+    /* 밝게/어둡게 — 첫 페인트 전에 적용해 번쩍임을 막는다 */
+    (function () {
+      try { if (localStorage.getItem('emoticon_theme') === 'dark') document.documentElement.className += ' theme-dark'; } catch (e) {}
+    })();
+  </script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- 상업적 무료 한글 Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Dongle:wght@400;700&family=Gamja+Flower&family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&family=Poor+Story&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans KR"', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* 라이트/다크 투명 체크무늬 */
+    .bg-checker-light {
+      background-color: #f8fafc;
+      background-image:
+        linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+        linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+    .bg-checker-dark {
+      background-color: #18181b;
+      background-image:
+        linear-gradient(45deg, #27272a 25%, transparent 25%),
+        linear-gradient(-45deg, #27272a 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #27272a 75%),
+        linear-gradient(-45deg, transparent 75%, #27272a 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    /* 스크롤바 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* 탭 전환 */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin-fast { animation: spin 0.75s linear infinite; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+
+    /* ===== 가족 PIN 0623 잠금 (화면 가림 전용) ===== */
+    #pinLockOverlay { display: none; }
+    html.pin-locked body > *:not(#pinLockOverlay) { visibility: hidden !important; }
+    html.pin-locked #pinLockOverlay { display: flex !important; }
+    @keyframes pinShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-9px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(4px); }
+    }
+    .pin-key {
+      width: 62px; height: 52px; border-radius: 14px; border: 1px solid rgba(148,163,184,.35);
+      background: rgba(15,23,42,.92); color: #e2e8f0; font-size: 19px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: background .12s ease, transform .08s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pin-key:active { transform: scale(.95); background: rgba(30,58,138,.7); }
+    .pin-dot { width: 12px; height: 12px; border-radius: 9999px; border: 1.5px solid #818cf8; transition: all .12s ease; }
+
+    /* ===== 밝게/어둡게 테마 ===== */
+    html.theme-dark { color-scheme: dark; }
+    html.theme-dark body { background-color: #0b1020 !important; color: #dbe4f0 !important; }
+    html.theme-dark header { background-color: rgba(17,24,39,.94) !important; border-color: #1f2a40 !important; }
+    html.theme-dark main, html.theme-dark footer { background-color: transparent !important; }
+    html.theme-dark .bg-white { background-color: #151b2b !important; }
+    html.theme-dark .bg-white\/95 { background-color: rgba(21,27,43,.95) !important; }
+    html.theme-dark .bg-white\/80 { background-color: rgba(21,27,43,.8) !important; }
+    html.theme-dark .bg-slate-50 { background-color: #0f1524 !important; }
+    html.theme-dark .bg-slate-50\/50 { background-color: rgba(28,36,54,.5) !important; }
+    html.theme-dark .bg-slate-50\/60 { background-color: rgba(28,36,54,.6) !important; }
+    html.theme-dark .bg-slate-100 { background-color: #1b2437 !important; }
+    html.theme-dark .hover\:bg-slate-100:hover { background-color: #223049 !important; }
+    html.theme-dark .hover\:bg-slate-200:hover { background-color: #223049 !important; }
+    html.theme-dark .border-slate-200 { border-color: #26314a !important; }
+    html.theme-dark .border-slate-100 { border-color: #1f2a40 !important; }
+    html.theme-dark .border-slate-300 { border-color: #334155 !important; }
+    html.theme-dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1f2a40 !important; }
+    html.theme-dark .text-slate-900 { color: #f1f5f9 !important; }
+    html.theme-dark .text-slate-800 { color: #e2e8f0 !important; }
+    html.theme-dark .text-slate-700 { color: #cbd5e1 !important; }
+    html.theme-dark .text-slate-600 { color: #a9b7ca !important; }
+    html.theme-dark .text-slate-500 { color: #94a3b8 !important; }
+    html.theme-dark .text-slate-400 { color: #7c8ba1 !important; }
+    html.theme-dark .bg-indigo-50, html.theme-dark .bg-indigo-50\/40, html.theme-dark .bg-indigo-50\/60 { background-color: rgba(79,70,229,.16) !important; }
+    html.theme-dark .hover\:bg-indigo-100:hover, html.theme-dark .hover\:bg-indigo-50:hover { background-color: rgba(79,70,229,.26) !important; }
+    html.theme-dark .text-indigo-700 { color: #a5b4fc !important; }
+    html.theme-dark .border-indigo-200 { border-color: rgba(99,102,241,.42) !important; }
+    html.theme-dark .bg-emerald-50\/70, html.theme-dark .bg-emerald-50\/50, html.theme-dark .bg-emerald-50 { background-color: rgba(16,185,129,.13) !important; }
+    html.theme-dark .text-emerald-900 { color: #6ee7b7 !important; }
+    html.theme-dark .text-emerald-700, html.theme-dark .text-emerald-800 { color: #34d399 !important; }
+    html.theme-dark .border-emerald-200, html.theme-dark .border-emerald-100 { border-color: rgba(16,185,129,.32) !important; }
+    html.theme-dark .bg-amber-50\/50, html.theme-dark .bg-amber-50, html.theme-dark .bg-amber-100 { background-color: rgba(245,158,11,.14) !important; }
+    html.theme-dark .text-amber-900, html.theme-dark .text-amber-700 { color: #fcd34d !important; }
+    html.theme-dark .border-amber-200 { border-color: rgba(245,158,11,.32) !important; }
+    html.theme-dark .bg-rose-50\/60, html.theme-dark .bg-rose-50 { background-color: rgba(244,63,94,.12) !important; }
+    html.theme-dark .border-rose-200, html.theme-dark .border-rose-300 { border-color: rgba(244,63,94,.34) !important; }
+    html.theme-dark .text-rose-700 { color: #fda4af !important; }
+    html.theme-dark .bg-fuchsia-50\/30 { background-color: rgba(217,70,239,.1) !important; }
+    html.theme-dark .border-fuchsia-200 { border-color: rgba(217,70,239,.3) !important; }
+    html.theme-dark input, html.theme-dark textarea, html.theme-dark select {
+      background-color: #0f1524 !important; color: #e2e8f0 !important; border-color: #334155 !important;
+    }
+    html.theme-dark input::placeholder, html.theme-dark textarea::placeholder { color: #64748b; }
+    html.theme-dark .bg-checker-light {
+      background-color: #141a27;
+      background-image:
+        linear-gradient(45deg, #1e2637 25%, transparent 25%),
+        linear-gradient(-45deg, #1e2637 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1e2637 75%),
+        linear-gradient(-45deg, transparent 75%, #1e2637 75%);
+    }
+    html.theme-dark #quick-guide-modal > div { background-color: #151b2b !important; }
+
+    /* ===== 검수 보드 · 타이포 프리셋 · 기타 ===== */
+    .preset-btn { transition: all .12s ease; }
+    .preset-btn.active { background: #4f46e5 !important; color: #fff !important; border-color: #4338ca !important; }
+    .board-cell { position: relative; overflow: hidden; border-radius: 12px; }
+    .board-cell img { width: 100%; height: 100%; object-fit: contain; }
+    .board-dark .board-cell { background: #111111; }
+    .board-light .board-cell { background: #ffffff; border: 1px solid #e2e8f0; }
+    .board-dark .board-cell { border: 1px solid #262626; }
+    .small-preview .board-cell { display: flex; align-items: center; justify-content: center; }
+    .small-preview .board-cell img { width: 96px; height: 96px; }
+    .seg-btn.active { background: #fff; color: #1e293b; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+    html.theme-dark .seg-btn.active { background: #334155; color: #f1f5f9; }
+    #anim-format-grid button:disabled { opacity: .55; cursor: progress; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- ===== 가족 PIN 0623 잠금 오버레이 (서버 Gemini 키 보호) ===== -->
+  <div id="pinLockOverlay" style="position: fixed; inset: 0; width: 100vw; height: 100vh; background: #0b1020; z-index: 999999; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+    <div id="pinCard" style="width: 100%; max-width: 320px; display: flex; flex-direction: column; align-items: center; gap: 18px;">
+      <div style="width: 54px; height: 54px; border-radius: 16px; background: linear-gradient(135deg,#6366f1,#8b5cf6 60%,#d946ef); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 32px -12px rgba(99,102,241,.8);">
+        <span style="font-size: 26px; line-height: 1;">🎨</span>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 16px; font-weight: 800; color: #f1f5f9; letter-spacing: -0.01em;">이모티콘 스튜디오</div>
+        <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">가족 PIN 4자리를 입력해 주세요</div>
+      </div>
+
+      <div style="display: flex; gap: 12px; margin: 2px 0;">
+        <div class="pin-dot" id="dot0"></div>
+        <div class="pin-dot" id="dot1"></div>
+        <div class="pin-dot" id="dot2"></div>
+        <div class="pin-dot" id="dot3"></div>
+      </div>
+
+      <div id="pinErrMsg" style="min-height: 16px; font-size: 11.5px; color: #fb7185; text-align: center;"></div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 62px); gap: 10px;">
+        <button type="button" class="pin-key" onclick="pressPin(1)">1</button>
+        <button type="button" class="pin-key" onclick="pressPin(2)">2</button>
+        <button type="button" class="pin-key" onclick="pressPin(3)">3</button>
+        <button type="button" class="pin-key" onclick="pressPin(4)">4</button>
+        <button type="button" class="pin-key" onclick="pressPin(5)">5</button>
+        <button type="button" class="pin-key" onclick="pressPin(6)">6</button>
+        <button type="button" class="pin-key" onclick="pressPin(7)">7</button>
+        <button type="button" class="pin-key" onclick="pressPin(8)">8</button>
+        <button type="button" class="pin-key" onclick="pressPin(9)">9</button>
+        <button type="button" class="pin-key" onclick="clearPin()" style="font-size: 12px; color:#94a3b8;">C</button>
+        <button type="button" class="pin-key" onclick="pressPin(0)">0</button>
+        <button type="button" class="pin-key" onclick="backspacePin()" style="font-size: 15px; color:#94a3b8;">⌫</button>
+      </div>
+
+      <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #cbd5e1; cursor: pointer; user-select: none;">
+        <input type="checkbox" id="chkAutoLogin" checked style="accent-color: #818cf8; width: 15px; height: 15px;" />
+        <span>이 기기에서 유지 (다음부터 바로 열림)</span>
+      </label>
+      <div style="font-size: 10.5px; color: #64748b; line-height: 1.5; text-align: center;">
+        관제탑과 같은 가족 PIN입니다 · 숫자키·Backspace·Enter 로도 입력할 수 있어요
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN 잠금 엔진 (별도 블록 — 본문 스크립트가 멈춰도 해제는 항상 동작) -->
+  <script>
+  (function () {
+    var PIN = '0623';
+    var KEY = 'stock_dashboard_pin_auth';
+    var VAL = '0623_verified';
+    var entered = '';
+    function isUnlocked() {
+      try { return (localStorage.getItem(KEY) === VAL) || (sessionStorage.getItem(KEY) === VAL); }
+      catch (e) { return true; }
+    }
+    function paint(locked) {
+      try {
+        var root = document.documentElement;
+        if (locked) { if (root.className.indexOf('pin-locked') < 0) root.className += ' pin-locked'; }
+        else { root.className = root.className.replace(/\s*pin-locked/g, ''); }
+        var ov = document.getElementById('pinLockOverlay');
+        if (ov) ov.style.display = locked ? 'flex' : 'none';
+      } catch (e) {}
+    }
+    function dots() {
+      for (var i = 0; i < 4; i++) {
+        var d = document.getElementById('dot' + i);
+        if (!d) continue;
+        if (i < entered.length) { d.style.background = '#38bdf8'; d.style.transform = 'scale(1.2)'; }
+        else { d.style.background = 'transparent'; d.style.transform = 'scale(1)'; }
+      }
+    }
+    function say(msg) { var e = document.getElementById('pinErrMsg'); if (e) e.textContent = msg || ''; }
+    function shake() {
+      var c = document.getElementById('pinCard');
+      if (!c) return;
+      c.style.animation = 'pinShake .34s ease';
+      setTimeout(function () { c.style.animation = ''; }, 360);
+    }
+    function remember() {
+      var chk = document.getElementById('chkAutoLogin');
+      return !chk || chk.checked;
+    }
+    function unlock() {
+      var keep = remember();
+      try {
+        if (keep) { localStorage.setItem(KEY, VAL); try { sessionStorage.removeItem(KEY); } catch (e) {} }
+        else { try { localStorage.removeItem(KEY); } catch (e) {} sessionStorage.setItem(KEY, VAL); }
+      } catch (e) { try { sessionStorage.setItem(KEY, VAL); } catch (e2) {} }
+      entered = ''; dots(); say(''); paint(false);
+      try { window.dispatchEvent(new CustomEvent('emoticon:unlocked')); } catch (e) {}
+    }
+    function verify() {
+      if (entered === PIN) { unlock(); return; }
+      say('❌ PIN이 맞지 않습니다. 다시 입력해 주세요.');
+      entered = ''; dots(); shake();
+    }
+    window.pressPin = function (n) {
+      n = String(n);
+      if (!/^[0-9]$/.test(n)) return;
+      if (entered.length >= 4) return;
+      entered += n; dots(); say('');
+      if (entered.length === 4) setTimeout(verify, 120);
+    };
+    window.clearPin = function () { entered = ''; dots(); say(''); };
+    window.backspacePin = function () { if (!entered.length) return; entered = entered.slice(0, -1); dots(); say(''); };
+    window.lockEmoticonStudio = function () {
+      try { localStorage.removeItem(KEY); } catch (e) {}
+      try { sessionStorage.removeItem(KEY); } catch (e) {}
+      entered = ''; dots(); say(''); paint(true);
+    };
+    window.addEventListener('keydown', function (e) {
+      if (!isUnlocked()) {
+        if (/^[0-9]$/.test(e.key)) { e.preventDefault(); window.pressPin(e.key); }
+        else if (e.key === 'Backspace') { e.preventDefault(); window.backspacePin(); }
+        else if (e.key === 'Enter') { e.preventDefault(); if (entered.length === 4) verify(); }
+        else if (e.key === 'Escape') { e.preventDefault(); window.clearPin(); }
+      }
+    });
+    if (isUnlocked()) paint(false); else paint(true);
+  })();
+  </script>
+
+  <!-- ========================================================= -->
+  <!-- 상단 헤더 & 네비게이션 -->
+  <!-- ========================================================= -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+    <div class="max-w-[1640px] mx-auto px-3 sm:px-5">
+      <div class="flex items-center justify-between h-16 gap-2">
+        <!-- 로고 -->
+        <div class="flex items-center gap-2.5 shrink-0 cursor-pointer" onclick="switchTab('tab-photo')">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500 flex items-center justify-center text-white shadow-md">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="text-sm sm:text-base font-black tracking-tight text-slate-900 leading-none">이모티콘 스튜디오 AI</h1>
+              <span class="px-1.5 py-0.5 rounded-md bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white text-[10px] font-black">PRO</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium mt-0.5 hidden md:block">사진 의인화 · 캐릭터 시트 · 리마스터링 · OGQ/LINE 패키징</p>
+          </div>
+        </div>
+
+        <!-- 빠른 체험 + 프로젝트 저장/불러오기 + 퀵 가이드 -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <button onclick="runQuickBoxDemo()" class="px-2.5 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-extrabold shadow-sm flex items-center gap-1.5 transition">
+            <span>📦</span>
+            <span class="hidden sm:inline">빠른 체험: 택배 상자 캐릭터 24종 채우기</span>
+            <span class="sm:hidden">상자 24종 체험</span>
+          </button>
+
+          <button onclick="saveProjectToLocal()" title="프로젝트 저장" class="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 transition">
+            <i data-lucide="save" class="w-4 h-4 text-indigo-600"></i>
+            <span class="hidden xl:inline">저장</span>
+          </button>
+          <button onclick="loadProjectFromLocal()" title="프로젝트 불러오기" class="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 transition">
+            <i data-lucide="folder-open" class="w-4 h-4 text-indigo-600"></i>
+            <span class="hidden xl:inline">불러오기</span>
+          </button>
+          <button onclick="openQuickGuideModal()" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1 transition">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+            <span class="hidden md:inline">퀵 가이드</span>
+          </button>
+          <button onclick="toggleTheme()" id="btn-theme" title="밝게/어둡게 테마" class="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 transition">
+            🌙<span class="hidden xl:inline">어둡게</span>
+          </button>
+          <button onclick="promptInstall()" id="btn-install" title="홈 화면에 앱으로 설치" class="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center gap-1 transition">
+            📲<span class="hidden xl:inline">설치</span>
+          </button>
+          <button onclick="lockEmoticonStudio()" title="지금 잠그기 (PIN 다시 입력)" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs font-bold transition">🔒</button>
+        </div>
+      </div>
+
+      <!-- 5개 메인 탭 바 -->
+      <nav class="flex items-center gap-1.5 overflow-x-auto pb-2.5 pt-0.5 no-scrollbar">
+        <button onclick="switchTab('tab-photo')" data-tab="tab-photo" class="main-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-sm">
+          📸 1. 사진→캐릭터 & 24종 기획
+        </button>
+        <button onclick="switchTab('tab-studio')" data-tab="tab-studio" class="main-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200">
+          🎨 2. 스튜디오 & 부분 수정
+        </button>
+        <button onclick="switchTab('tab-review')" data-tab="tab-review" class="main-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200">
+          📱 3. 실전 검수 & 콤보 테스트
+        </button>
+        <button onclick="switchTab('tab-board')" data-tab="tab-board" class="main-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200">
+          🖤 3-2. 라이트·다크 일괄 검수
+        </button>
+        <button onclick="switchTab('tab-export')" data-tab="tab-export" class="main-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200">
+          📦 4. 멀티 플랫폼 내보내기 & SEO
+        </button>
+        <button onclick="switchTab('tab-guide')" data-tab="tab-guide" class="main-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200">
+          📖 5. 사용 설명서
+        </button>
+        <div class="ml-auto hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold shrink-0">
+          <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+          완성 <span id="header-done-count">0</span> / 24
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ========================================================= -->
+  <!-- 메인 콘텐츠 -->
+  <!-- ========================================================= -->
+  <main class="flex-1 max-w-[1640px] w-full mx-auto px-3 sm:px-5 py-5">
+
+    <!-- ======================================================= -->
+    <!-- TAB 1: 📸 사진→캐릭터 & 24종 기획 -->
+    <!-- ======================================================= -->
+    <section id="tab-photo" class="tab-panel active space-y-5">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        <!-- 좌측 (5 cols): 사진 업로드, 상표 클린업, 의인화/화풍 프리셋, 캐릭터 시트 -->
+        <div class="lg:col-span-5 space-y-5">
+          <!-- 1-1. 사물 사진 업로더 & 의인화 설정 -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="camera" class="w-5 h-5 text-indigo-600"></i> 사진 → 사물 의인화 (Photo-to-Mascot)
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">택배 상자, 머그컵, 반려동물 등 사진을 올리면 귀여운 캐릭터로 변환합니다.</p>
+              </div>
+            </div>
+
+            <!-- 드래그 앤 드롭 업로더 -->
+            <div id="photo-dropzone" class="relative rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-4 flex flex-col sm:flex-row items-center gap-4 transition hover:border-indigo-400">
+              <div class="w-28 h-28 rounded-xl bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                <img id="uploaded-photo-preview" src="" alt="업로드 사진" class="w-full h-full object-cover hidden" />
+                <div id="uploaded-photo-empty" class="text-center p-2 text-slate-400">
+                  <i data-lucide="image-plus" class="w-7 h-7 mx-auto mb-1 opacity-60"></i>
+                  <span class="text-[11px] font-medium block">사진 없음</span>
+                </div>
+              </div>
+              <div class="flex-1 w-full space-y-2">
+                <div class="flex flex-wrap gap-2">
+                  <label class="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i> 사진 업로드
+                    <input type="file" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)" />
+                  </label>
+                  <button onclick="loadSampleBoxPhoto()" class="flex-1 py-2 px-3 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-extrabold flex items-center justify-center gap-1.5 transition">
+                    📦 샘플 택배 상자 사진 쓰기
+                  </button>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-relaxed">사진을 드래그해서 놓거나 샘플 택배 상자 사진으로 바로 테스트해 보세요.</p>
+              </div>
+            </div>
+
+            <!-- 상표·로고 자동 클린업 토글 -->
+            <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 flex items-start gap-2.5">
+              <input id="toggle-logo-cleanup" type="checkbox" checked class="mt-0.5 w-4 h-4 rounded accent-emerald-600 cursor-pointer" />
+              <label for="toggle-logo-cleanup" class="cursor-pointer">
+                <div class="text-xs font-extrabold text-emerald-900 flex items-center gap-1.5">
+                  🛡️ 상표·로고 자동 클린업 (심사 반려 방지)
+                </div>
+                <p class="text-[11px] text-emerald-700 mt-0.5 leading-snug">
+                  택배사 로고, 브랜드명, 운송장 글씨를 자동 제거하고 안전한 오리지널 무늬(하트 테이프, 별 스티커 등)로 치환합니다.
+                </p>
+              </label>
+            </div>
+
+            <!-- 의인화 스타일 & 화풍 프리셋 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">의인화 스타일</label>
+                <select id="select-anthro" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+                  <option value="SD 2등신 (팔·다리 추가)">SD 2등신 (팔·다리 추가)</option>
+                  <option value="심플 페이스 (사물 형태 유지 + 표정만)">심플 페이스 (사물 형태 유지 + 표정만)</option>
+                  <option value="말랑 젤리·인형화">말랑 젤리·인형화</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">화풍 프리셋</label>
+                <select id="select-artstyle" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+                  <option value="몽글 손그림">몽글 손그림 (따뜻한 색연필/크레파스)</option>
+                  <option value="깔끔 플랫 벡터">깔끔 플랫 벡터 (선명한 외곽선)</option>
+                  <option value="B급 병맛 낙서">B급 병맛 낙서 (유쾌한 키치)</option>
+                  <option value="파스텔 수채화">파스텔 수채화 (포근한 감성)</option>
+                  <option value="3D 클레이">3D 클레이 (말랑한 피규어)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- AI 사물 분석 & 세계관/24종 기획 실행 버튼 -->
+            <button onclick="analyzePhotoAndPlanAI()" id="btn-analyze-photo" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-sm font-extrabold shadow-sm flex items-center justify-center gap-2 transition">
+              <i data-lucide="sparkles" class="w-4 h-4"></i> AI 사물 분석 · 세계관 & 24종 기획 자동 생성
+            </button>
+
+            <!-- 분석된 캐릭터 DNA 정보 -->
+            <div class="space-y-2.5 pt-2 border-t border-slate-100">
+              <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">캐릭터 이름</label>
+                  <input id="dna-char-name" type="text" value="박쭈" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">캐릭터 세계관 / 한 줄 컨셉</label>
+                  <input id="dna-worldview" type="text" value="언박싱 기다리며 설레는 소심한 택배 상자" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">비주얼 DNA 프롬프트 (일관성 핵심)</label>
+                <textarea id="dna-visual-prompt" rows="2" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-600">Cute warm kraft-brown cardboard box mascot with pink heart sealing tape on top, starry cute eyes, rosy cheeks, tiny arms and legs, no brand logos, clean thick hand-drawn outline</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1-2. 캐릭터 턴어라운드 시트 생성 & 고정 -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <i data-lucide="layout-template" class="w-4 h-4 text-indigo-600"></i> 캐릭터 턴어라운드 시트 (정면·측면·뒷모습 + 표정 4종)
+                </h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">시트를 먼저 고정하면 24종 생성 시 옆모습·누운 포즈도 얼굴이 안 깨집니다.</p>
+              </div>
+            </div>
+
+            <div class="w-full aspect-[16/9] rounded-xl bg-checker-light border border-slate-200 overflow-hidden flex items-center justify-center relative">
+              <img id="turnaround-sheet-img" src="" alt="캐릭터 시트" class="w-full h-full object-contain hidden" />
+              <div id="turnaround-sheet-empty" class="text-center text-slate-400 p-4">
+                <i data-lucide="grid-2x2" class="w-8 h-8 mx-auto mb-1 opacity-50"></i>
+                <p class="text-xs font-semibold">아직 생성된 캐릭터 시트가 없습니다.</p>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2">
+              <button onclick="generateTurnaroundSheetAI()" id="btn-gen-sheet" class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                <i data-lucide="wand-2" class="w-3.5 h-3.5"></i> 캐릭터 시트 생성
+              </button>
+              <button onclick="toggleLockSheetDNA()" id="btn-lock-sheet" class="flex-1 py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-extrabold flex items-center justify-center gap-1.5 transition">
+                🔓 이 시트를 24종 기준(DNA)으로 고정
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측 (7 cols): 24종 황금 비율 + 연속 콤보 기획 -->
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-3">
+            <div>
+              <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <i data-lucide="layout-grid" class="w-5 h-5 text-indigo-600"></i> 24종 황금 비율 & 연속 콤보(이어쓰기) 기획
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">
+                인사(3)·긍정(4)·감사/사과(4)·리액션(4)·부정(3)·특수(2) + <span class="text-fuchsia-600 font-bold">🔗 연속 콤보 2세트(4컷)</span>
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="batchGenerateAll24AI()" id="btn-batch-24" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-700 hover:to-indigo-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i> 24종 일괄 AI 생성
+              </button>
+            </div>
+          </div>
+
+          <!-- 실용 24종 기획 프리셋 -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/60 p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-black text-slate-800 flex items-center gap-1.5">⚡ 실전 24종 기획 프리셋</h3>
+              <span class="text-[10px] font-bold text-slate-500">누르면 문구·표정이 바로 채워집니다</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5" id="preset-buttons">
+              <button onclick="applyPreset('basic')" data-preset="basic" class="preset-btn px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">📦 사물 의인화 기본</button>
+              <button onclick="applyPreset('blogger')" data-preset="blogger" class="preset-btn px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">📝 블로거 리뷰용 (내돈내산·강추·솔직후기·구분선)</button>
+              <button onclick="applyPreset('worker')" data-preset="worker" class="preset-btn px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">📈 주식·직장인용</button>
+              <button onclick="applyPreset('couple')" data-preset="couple" class="preset-btn px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">💗 가족·연인용</button>
+            </div>
+            <div id="reference-status" class="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5">
+              <span class="text-indigo-600">🔒 기준 캐릭터</span>
+              <span id="reference-status-text">캐릭터 시트를 고정하거나 1번 컷을 먼저 만들면 24종 전체에 자동 적용됩니다.</span>
+            </div>
+          </div>
+
+          <!-- 24종 슬롯 리스트 -->
+          <div id="plan-slots-grid" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 overflow-y-auto max-h-[760px] pr-1">
+            <!-- JS 렌더링 -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================= -->
+    <!-- TAB 2: 🎨 스튜디오 & 부분 수정 (Inpainting, Remaster, Motion) -->
+    <!-- ======================================================= -->
+    <section id="tab-studio" class="tab-panel">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+        <!-- 좌측 (3 cols): 24종 콤팩트 그리드 -->
+        <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex flex-col max-h-[820px]">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+            <h3 class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+              <i data-lucide="layers" class="w-4 h-4 text-indigo-600"></i> 24종 슬롯 선택
+            </h3>
+            <span id="studio-active-badge" class="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">#01</span>
+          </div>
+          <div id="studio-thumb-grid" class="grid grid-cols-3 gap-1.5 overflow-y-auto pr-1">
+            <!-- JS 렌더링 -->
+          </div>
+        </div>
+
+        <!-- 중앙 (5 cols): 인터랙티브 HTML5 캔버스 + 부분 수정 브러시 -->
+        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col items-center">
+          <!-- 상단 툴바 -->
+          <div class="w-full flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-100">
+            <div class="flex items-center gap-1.5">
+              <span id="canvas-cat-badge" class="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700">#01 인사</span>
+              <span id="canvas-combo-badge" class="hidden text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-fuchsia-100 text-fuchsia-700">🔗 콤보</span>
+            </div>
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
+              <button onclick="setStudioBg('checker-light')" id="sbg-light" class="px-2 py-1 rounded-lg bg-white text-slate-800 shadow-xs">라이트</button>
+              <button onclick="setStudioBg('checker-dark')" id="sbg-dark" class="px-2 py-1 rounded-lg text-slate-500">다크</button>
+              <button onclick="adjustCanvasZoom(0.1)" class="px-2 py-1 rounded-lg text-slate-600 hover:bg-white" title="확대">+</button>
+              <button onclick="adjustCanvasZoom(-0.1)" class="px-2 py-1 rounded-lg text-slate-600 hover:bg-white" title="축소">-</button>
+              <button onclick="resetCanvasZoom()" class="px-2 py-1 rounded-lg text-slate-600 hover:bg-white" title="초기화">100%</button>
+            </div>
+          </div>
+
+          <!-- 캔버스 컨테이너 (메인 캔버스 + 인페인팅 마스크 캔버스 오버레이) -->
+          <div id="studio-canvas-frame" class="w-full max-w-[520px] aspect-square rounded-2xl bg-checker-light border border-slate-200 overflow-hidden relative flex items-center justify-center shadow-inner select-none">
+            <div id="canvas-zoom-wrap" class="w-full h-full relative transition-transform duration-150">
+              <canvas id="studio-main-canvas" width="600" height="600" class="w-full h-full object-contain"></canvas>
+              <canvas id="studio-mask-canvas" width="600" height="600" class="w-full h-full object-contain absolute inset-0 pointer-events-none"></canvas>
+            </div>
+            <!-- 로딩 오버레이 -->
+            <div id="studio-loader" class="hidden absolute inset-0 bg-white/80 backdrop-blur-xs flex flex-col items-center justify-center gap-2 z-20">
+              <div class="w-9 h-9 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin-fast"></div>
+              <p id="studio-loader-msg" class="text-xs font-extrabold text-indigo-700">AI 작업 중...</p>
+            </div>
+          </div>
+
+          <p id="canvas-hint-text" class="text-[11px] text-slate-400 mt-2">
+            💡 캔버스 위의 텍스트와 만화 파츠는 마우스/터치로 드래그해 위치를 옮길 수 있습니다.
+          </p>
+
+          <!-- 부분 수정(인페인팅) 컨트롤 바 -->
+          <div class="w-full max-w-[520px] mt-3 p-3 rounded-xl bg-rose-50/60 border border-rose-200 space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <button onclick="toggleInpaintMode()" id="btn-inpaint-toggle" class="px-3 py-1.5 rounded-lg bg-white border border-rose-300 text-rose-700 text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition">
+                🖌️ 부분 수정 브러시 OFF
+              </button>
+              <div class="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+                <span>크기 <b id="inpaint-size-val">32</b></span>
+                <input id="inpaint-brush-size" type="range" min="10" max="80" value="32" oninput="document.getElementById('inpaint-size-val').textContent=this.value" class="w-20 accent-rose-500" />
+                <button onclick="clearInpaintMask()" class="px-2 py-1 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-600">마스크 지우기</button>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <input id="inpaint-prompt" type="text" placeholder="예: 눈을 더 크고 반짝이게 수정, 손 모양을 하트로 변경" class="flex-1 px-2.5 py-1.5 rounded-lg border border-rose-200 bg-white text-xs" />
+              <button onclick="runInpaintRegenerate()" class="shrink-0 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold transition">
+                ✨ 선택 영역만 AI 다시 그리기
+              </button>
+            </div>
+          </div>
+
+          <!-- 하단 액션 버튼 -->
+          <div class="w-full max-w-[520px] mt-3 grid grid-cols-2 gap-2">
+            <button onclick="generateSingleSlotAI(state.selectedSlotIndex)" class="py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition">
+              <i data-lucide="sparkles" class="w-4 h-4"></i> 현재 슬롯 AI 다시 생성
+            </button>
+            <button onclick="commitCurrentSlot()" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition">
+              <i data-lucide="check-circle" class="w-4 h-4"></i> 현재 컷 확정 저장
+            </button>
+          </div>
+        </div>
+
+        <!-- 우측 (4 cols): 리마스터링 · 타이포 · 파츠 · 모션 -->
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-4 max-h-[820px] overflow-y-auto">
+
+          <!-- 1. 작화 통일 & 리마스터링 파이프라인 -->
+          <div class="space-y-2.5 pb-3 border-b border-slate-100">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <i data-lucide="wand-2" class="w-3.5 h-3.5 text-indigo-600"></i> 1. 작화 통일 & 후처리 (리마스터링)
+              </h4>
+              <label class="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 cursor-pointer">
+                <input id="ctrl-rembg" type="checkbox" checked onchange="onSettingChange('removeBg', this.checked)" class="accent-indigo-600" /> 스마트 누끼
+              </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                  <span>경계 깎기 (Erode)</span><span id="val-erode">1px</span>
+                </div>
+                <input id="ctrl-erode" type="range" min="0" max="4" value="1" oninput="onSettingChange('erode', Number(this.value))" class="w-full accent-indigo-600" />
+              </div>
+              <div>
+                <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                  <span>다크모드 흰색 외곽선</span><span id="val-stroke">10px</span>
+                </div>
+                <input id="ctrl-stroke" type="range" min="0" max="16" value="10" oninput="onSettingChange('strokeWidth', Number(this.value))" class="w-full accent-indigo-600" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">선 굵기·채색 톤 강제 통일 프리셋</label>
+              <select id="ctrl-remaster" onchange="onSettingChange('remaster', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
+                <option value="none">원본</option>
+                <option value="ink">깔끔 잉크라인 강화 (대비·선명도 UP)</option>
+                <option value="pastel">파스텔 톤 정규화 (부드러운 색감)</option>
+                <option value="flat">플랫 컬러 (채도·색감 균일화)</option>
+                <option value="paper">종이/크레파스 질감 오버레이</option>
+              </select>
+            </div>
+
+            <button onclick="applyRemasterToAll24()" class="w-full py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-extrabold transition">
+              ✨ 24종 전체에 현재 보정·외곽선 일괄 적용
+            </button>
+          </div>
+
+          <!-- 2. 타이포그래피 -->
+          <div class="space-y-2.5 pb-3 border-b border-slate-100">
+            <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+              <i data-lucide="type" class="w-3.5 h-3.5 text-indigo-600"></i> 2. 타이포그래피 (드래그 이동 가능)
+            </h4>
+            <input id="ctrl-text" type="text" oninput="onSettingChange('text', this.value)" placeholder="이모티콘 문구 입력" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-bold" />
+            <div class="grid grid-cols-2 gap-2">
+              <select id="ctrl-font" onchange="onSettingChange('font', this.value)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
+                <option value="Jua">배민 주아체 (Jua)</option>
+                <option value="Do Hyeon">배민 도현체 (Do Hyeon)</option>
+                <option value="Black Han Sans">강렬한 고딕 (Black Han Sans)</option>
+                <option value="Gamja Flower">감자꽃 손글씨 (Gamja Flower)</option>
+                <option value="Poor Story">푸어스토리 (Poor Story)</option>
+                <option value="Dongle">동글체 (Dongle)</option>
+                <option value="Noto Sans KR">본고딕 (Noto Sans KR)</option>
+              </select>
+              <div class="flex items-center justify-around bg-slate-50 rounded-lg border border-slate-200 px-2">
+                <label class="flex items-center gap-1 text-[11px] font-bold text-slate-600">
+                  글자 <input id="ctrl-tcolor" type="color" value="#1e293b" oninput="onSettingChange('textColor', this.value)" class="w-6 h-6 rounded cursor-pointer" />
+                </label>
+                <label class="flex items-center gap-1 text-[11px] font-bold text-slate-600">
+                  테두리 <input id="ctrl-tstroke" type="color" value="#ffffff" oninput="onSettingChange('textStroke', this.value)" class="w-6 h-6 rounded cursor-pointer" />
+                </label>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                  <span>글자 크기</span><span id="val-fsize">62</span>
+                </div>
+                <input id="ctrl-fsize" type="range" min="28" max="110" value="62" oninput="onSettingChange('fontSize', Number(this.value))" class="w-full accent-indigo-600" />
+              </div>
+              <div>
+                <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                  <span>아치형 휘기</span><span id="val-arch">0</span>
+                </div>
+                <input id="ctrl-arch" type="range" min="-10" max="10" value="0" oninput="onSettingChange('textArch', Number(this.value))" class="w-full accent-indigo-600" />
+              </div>
+            </div>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+              <input id="ctrl-jitter" type="checkbox" checked onchange="onSettingChange('textJitter', this.checked)" class="accent-indigo-600" /> 손글씨 지터(글자마다 살짝 틀기)
+            </label>
+            <div class="space-y-1.5 pt-1">
+              <div class="text-[11px] font-bold text-slate-600">한글 폰트 효과 프리셋 (그림 속 글씨 대신 여기서만)</div>
+              <div class="flex flex-wrap gap-1.5" id="text-style-buttons">
+                <button onclick="applyTextStyle('outline')" data-ts="outline" class="preset-btn px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">기본 외곽선</button>
+                <button onclick="applyTextStyle('sticker')" data-ts="sticker" class="preset-btn px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">두꺼운 스티커</button>
+                <button onclick="applyTextStyle('shadow')" data-ts="shadow" class="preset-btn px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">그림자</button>
+                <button onclick="applyTextStyle('badge')" data-ts="badge" class="preset-btn px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">배지 라벨</button>
+                <button onclick="applyTextStyle('neon')" data-ts="neon" class="preset-btn px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">네온 글로우</button>
+                <button onclick="applyTextStyle('curve')" data-ts="curve" class="preset-btn px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">아치 곡선</button>
+              </div>
+              <div class="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+                <span>기울기</span>
+                <input id="ctrl-slant" type="range" min="-14" max="14" value="0" oninput="onSettingChange('textSlant', Number(this.value))" class="flex-1 accent-indigo-600" />
+                <span id="val-slant">0°</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. 만화 효과 파츠 -->
+          <div class="space-y-2 pb-3 border-b border-slate-100">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <i data-lucide="smile-plus" class="w-3.5 h-3.5 text-indigo-600"></i> 3. 만화 효과 파츠 (클릭 추가 · 드래그 이동)
+              </h4>
+              <button onclick="clearSlotParts()" class="text-[11px] text-rose-500 font-bold hover:underline">전체 삭제</button>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="addComicPart('💧')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-base transition">💧</button>
+              <button onclick="addComicPart('💢')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-base transition">💢</button>
+              <button onclick="addComicPart('💖')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-base transition">💖</button>
+              <button onclick="addComicPart('✨')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-base transition">✨</button>
+              <button onclick="addComicPart('❓')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-base transition">❓</button>
+              <button onclick="addComicPart('❗')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-base transition">❗</button>
+              <button onclick="addComicPart('SPEEDLINES')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-xs font-extrabold text-slate-700 transition">💥 집중선</button>
+              <button onclick="addComicPart('BUBBLE')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-xs font-extrabold text-slate-700 transition">💬 말풍선</button>
+            </div>
+          </div>
+
+          <!-- 4. 원클릭 모션 엔진 -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <i data-lucide="play-circle" class="w-3.5 h-3.5 text-indigo-600"></i> 4. 원클릭 모션 & 파티클 엔진
+              </h4>
+              <label class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 cursor-pointer">
+                <input id="ctrl-motion-play" type="checkbox" checked onchange="state.motionPlaying = this.checked" class="accent-emerald-600" /> 재생 ON
+              </label>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <select id="ctrl-motion" onchange="onSettingChange('motion', this.value)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
+                <option value="none">모션 없음 (정지형)</option>
+                <option value="bounce">통통 튀기</option>
+                <option value="shake">부들부들 떨기</option>
+                <option value="nod">끄덕이기</option>
+                <option value="pulse">두근두근 확대</option>
+                <option value="wiggle">흔들흔들</option>
+              </select>
+              <select id="ctrl-particle" onchange="onSettingChange('particle', this.value)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
+                <option value="none">파티클 없음</option>
+                <option value="heart">하트 날리기 💖</option>
+                <option value="sparkle">반짝임 ✨</option>
+                <option value="sweat">땀방울 떨어지기 💧</option>
+              </select>
+            </div>
+            <p class="text-[10.5px] text-slate-500 leading-snug">모션·파티클을 고른 뒤 아래 [움직이는 스티커]로 GIF·APNG·WebM 을 저장할 수 있습니다.</p>
+          </div>
+
+          <!-- 5. 움직이는 스티커 내보내기 -->
+          <div class="space-y-2 pt-3 border-t border-slate-100">
+            <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+              <i data-lucide="film" class="w-3.5 h-3.5 text-indigo-600"></i> 5. 움직이는 스티커 내보내기
+            </h4>
+            <div class="grid grid-cols-2 gap-2">
+              <select id="anim-size" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
+                <option value="360">360px (플랫폼 규격)</option>
+                <option value="600">600px (고화질)</option>
+              </select>
+              <select id="anim-speed" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
+                <option value="1">보통 속도</option>
+                <option value="1.6">빠르게 (1.6×)</option>
+                <option value="0.65">느리게 (0.65×)</option>
+              </select>
+            </div>
+            <div id="anim-format-grid" class="grid grid-cols-3 gap-2">
+              <button onclick="exportAnimated('gif')" class="py-2 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-[11px] font-extrabold">GIF 저장</button>
+              <button onclick="exportAnimated('apng')" class="py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-extrabold">APNG 저장</button>
+              <button onclick="exportAnimated('webm')" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-extrabold">WebM 저장</button>
+            </div>
+            <p class="text-[10.5px] text-slate-500 leading-snug">APNG 는 투명 배경, GIF 는 흰 배경으로 저장됩니다. 모션을 [모션 없음]으로 두면 움직이지 않습니다.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================= -->
+    <!-- TAB 3: 📱 실전 검수 & 콤보 테스트 -->
+    <!-- ======================================================= -->
+    <section id="tab-review" class="tab-panel space-y-5">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- 좌측 (7 cols): 모바일 채팅방 시뮬레이터 & 콤보 테스트 -->
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <i data-lucide="smartphone" class="w-5 h-5 text-indigo-600"></i> 모바일 실전 검수 & 연속 콤보 테스트
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">실제 채팅방 크기로 가독성을 확인하고 콤보 이모티콘을 연달아 보내보세요.</p>
+            </div>
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+              <button onclick="setChatTheme('light')" id="chat-theme-light" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs">라이트모드</button>
+              <button onclick="setChatTheme('dark')" id="chat-theme-dark" class="px-3 py-1.5 rounded-lg text-slate-500">다크모드</button>
+            </div>
+          </div>
+
+          <!-- 콤보 이어보내기 원클릭 버튼 -->
+          <div class="flex flex-wrap gap-2">
+            <button onclick="sendComboPair(20, 21)" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white text-xs font-extrabold shadow-xs flex items-center gap-1.5 transition">
+              🔥 콤보 1 이어보내기 (#21 → #22)
+            </button>
+            <button onclick="sendComboPair(22, 23)" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs font-extrabold shadow-xs flex items-center gap-1.5 transition">
+              🔥 콤보 2 이어보내기 (#23 → #24)
+            </button>
+            <button onclick="clearChatMessages()" class="ml-auto px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold">대화 비우기</button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <!-- 24종 클릭 전송 그리드 -->
+            <div id="review-grid-wrap" class="md:col-span-7 rounded-2xl p-3 bg-[#bacee0] transition-colors max-h-[500px] overflow-y-auto">
+              <div id="review-24-grid" class="grid grid-cols-4 gap-2">
+                <!-- JS 렌더링 -->
+              </div>
+            </div>
+
+            <!-- 스마트폰 채팅방 -->
+            <div id="mobile-chat-frame" class="md:col-span-5 rounded-3xl border-[6px] border-slate-900 overflow-hidden bg-[#bacee0] h-[500px] flex flex-col shadow-lg transition-colors">
+              <div class="bg-slate-900 text-white px-4 py-2.5 text-xs font-bold flex items-center justify-between">
+                <span>💬 이모티콘 실전 채팅방</span>
+                <span class="text-[10px] text-slate-400">9:41</span>
+              </div>
+              <div id="chat-messages" class="flex-1 p-3 space-y-3 overflow-y-auto text-xs">
+                <div class="flex items-start gap-2">
+                  <div class="w-7 h-7 rounded-full bg-indigo-500 text-white flex items-center justify-center font-black text-[11px] shrink-0">친구</div>
+                  <div class="bg-white text-slate-800 px-3 py-2 rounded-2xl rounded-tl-none shadow-xs leading-relaxed">
+                    우와 새로 만든 캐릭터 보내봐! 콤보 이모티콘도 궁금해 😆
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white/95 p-2 text-center text-[11px] text-slate-400 border-t border-slate-200">
+                좌측 이모티콘 클릭 시 즉시 전송
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측 (5 cols): 1080x1080 홍보용 카드뉴스 생성기 -->
+        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="border-b border-slate-100 pb-3">
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="image" class="w-5 h-5 text-indigo-600"></i> 홍보용 카드뉴스 자동 생성 (1080×1080)
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">인스타 · 스레드 · 블로그 홍보용 대표 이미지 + 24종 모아보기</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">카드뉴스 타이틀</label>
+              <input id="promo-title" type="text" value="택배 상자 박쭈의 일상 24종 📦" oninput="renderPromoCard()" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">테마 스타일</label>
+              <select id="promo-theme" onchange="renderPromoCard()" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white">
+                <option value="pastel">파스텔 핑크 (귀여운 감성)</option>
+                <option value="dark">다크 네온 (외곽선 강조)</option>
+                <option value="grid">모눈종이 노트 (손그림 감성)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="w-full max-w-[380px] mx-auto aspect-square rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+            <canvas id="promo-canvas" width="1080" height="1080" class="w-full h-full object-contain"></canvas>
+          </div>
+
+          <button onclick="downloadPromoCardPNG()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-sm font-extrabold shadow-sm flex items-center justify-center gap-2 transition">
+            <i data-lucide="download" class="w-4 h-4"></i> 1080×1080 홍보용 카드뉴스 PNG 다운로드
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================= -->
+    <!-- TAB 3-2: 🖤 라이트·다크 일괄 검수 보드 -->
+    <!-- ======================================================= -->
+    <section id="tab-board" class="tab-panel space-y-5">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="columns-2" class="w-5 h-5 text-indigo-600"></i> 24종 라이트·다크 동시 검수판
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">같은 24종을 <b>검정 배경(#111)</b>과 <b>흰 배경(#fff)</b>에 나란히 놓고, 다크모드 흰색 외곽선이 살아 있는지 한눈에 확인합니다.</p>
+          </div>
+          <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
+            <button onclick="setBoardBg('both')" data-board-bg="both" class="seg-btn active px-2.5 py-1 rounded-lg">둘 다</button>
+            <button onclick="setBoardBg('dark')" data-board-bg="dark" class="seg-btn px-2.5 py-1 rounded-lg text-slate-500">다크만</button>
+            <button onclick="setBoardBg('light')" data-board-bg="light" class="seg-btn px-2.5 py-1 rounded-lg text-slate-500">라이트만</button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600">
+          <label class="inline-flex items-center gap-1.5 cursor-pointer bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+            <input id="board-small" type="checkbox" onchange="renderBoard()" class="accent-indigo-600" /> 실제 채팅 크기(96px)로 보기
+          </label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+            <input id="board-outline" type="checkbox" checked onchange="renderBoard()" class="accent-indigo-600" /> 다크 배경 외곽선 강조(미리보기)
+          </label>
+          <span id="board-count" class="ml-auto px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700">완성 0 / 24</span>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div id="board-dark-wrap" class="rounded-2xl overflow-hidden border border-slate-800">
+            <div class="px-3 py-2 bg-[#111] text-white text-xs font-extrabold flex items-center justify-between">
+              <span>🌙 다크 배경 (#111)</span><span class="text-[10px] text-slate-400">흰 외곽선 확인</span>
+            </div>
+            <div id="board-dark-grid" class="board-dark grid grid-cols-4 sm:grid-cols-6 gap-1.5 p-3 bg-[#0a0a0a]"></div>
+          </div>
+          <div id="board-light-wrap" class="rounded-2xl overflow-hidden border border-slate-200">
+            <div class="px-3 py-2 bg-white text-slate-800 text-xs font-extrabold flex items-center justify-between">
+              <span>☀️ 라이트 배경 (#fff)</span><span class="text-[10px] text-slate-400">누끼·여백 확인</span>
+            </div>
+            <div id="board-light-grid" class="board-light grid grid-cols-4 sm:grid-cols-6 gap-1.5 p-3 bg-white"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <b class="text-slate-800">1. 외곽선</b>
+            <p class="text-slate-600 mt-0.5">다크 배경에서 캐릭터 윤곽이 사라지면 [스튜디오 → 흰색 외곽선]을 8~12px로 올리고 [24종 일괄 적용]을 누르세요.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <b class="text-slate-800">2. 크기 균일</b>
+            <p class="text-slate-600 mt-0.5">실제 채팅 크기(96px)에서 글씨가 뭉개지면 글자 크기를 58~66 사이로 맞추는 편이 안전합니다.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <b class="text-slate-800">3. 글씨 없음</b>
+            <p class="text-slate-600 mt-0.5">AI 그림에는 글씨를 넣지 않고(서버가 강제), 한글 문구는 스튜디오 폰트 효과로만 얹습니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================= -->
+    <!-- TAB 4: 📦 멀티 플랫폼 내보내기 & 다국어 SEO -->
+    <!-- ======================================================= -->
+    <section id="tab-export" class="tab-panel space-y-5">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- 좌측 (6 cols): 멀티 플랫폼 ZIP 패키징 -->
+        <div class="lg:col-span-6 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3.5">
+          <div class="border-b border-slate-100 pb-3">
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="package-check" class="w-5 h-5 text-indigo-600"></i> 멀티 플랫폼 원클릭 ZIP 패키징
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">각 플랫폼 심사 규격에 맞춰 리사이징·파일명 정리 후 ZIP으로 내려받습니다.</p>
+          </div>
+
+          <!-- 네이버 OGQ -->
+          <div class="p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span class="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black">국내 주력</span>
+              <h3 class="text-sm font-extrabold text-slate-900 mt-1">네이버 OGQ 마켓 스티커</h3>
+              <p class="text-xs text-slate-600">740×640px (24장) + 메인 240×240 + 탭 96×74 PNG</p>
+              <p class="text-[11px] text-emerald-700 font-bold mt-0.5">✓ AI 제작물 판매 허용 (등록 시 AI 활용 체크 필수)</p>
+            </div>
+            <button onclick="exportZIP('ogq')" class="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-xs transition">OGQ ZIP 받기</button>
+          </div>
+
+          <!-- 라인 LINE -->
+          <div class="p-3.5 rounded-2xl border border-green-200 bg-green-50/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span class="px-2 py-0.5 rounded bg-green-600 text-white text-[10px] font-black">글로벌 추천</span>
+              <h3 class="text-sm font-extrabold text-slate-900 mt-1">라인(LINE) 크리에이터스 마켓</h3>
+              <p class="text-xs text-slate-600">370×320px (24장) + 메인 240×240 + 탭 96×74 PNG</p>
+              <p class="text-[11px] text-green-700 font-bold mt-0.5">✓ 일본·대만·태국 글로벌 마켓 판매 가능</p>
+            </div>
+            <button onclick="exportZIP('line')" class="shrink-0 px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-extrabold shadow-xs transition">LINE ZIP 받기</button>
+          </div>
+
+          <!-- 카카오톡 시안용 -->
+          <div class="p-3.5 rounded-2xl border border-amber-200 bg-amber-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span class="px-2 py-0.5 rounded bg-amber-500 text-white text-[10px] font-black">시안/직접그림용</span>
+              <h3 class="text-sm font-extrabold text-slate-900 mt-1">카카오톡 시안용 규격</h3>
+              <p class="text-xs text-slate-600">360×360px 투명 배경 PNG (24장)</p>
+              <p class="text-[11px] text-rose-600 font-bold mt-0.5">⚠ 카카오톡은 생성형 AI 제작물 제안 제한 (아이디어 시안/직접 리터칭용)</p>
+            </div>
+            <button onclick="exportZIP('kakao')" class="shrink-0 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-xs transition">카카오 ZIP 받기</button>
+          </div>
+
+          <!-- SNS/메신저 & 굿즈 칼선 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col justify-between gap-2.5">
+              <div>
+                <h3 class="text-xs font-extrabold text-slate-900">텔레그램 · 디스코드 · SNS</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">512×512px 고화질 PNG 24장</p>
+              </div>
+              <button onclick="exportZIP('sns')" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-extrabold transition">512px ZIP 받기</button>
+            </div>
+            <div class="p-3.5 rounded-2xl border border-indigo-200 bg-indigo-50/50 flex flex-col justify-between gap-2.5">
+              <div>
+                <h3 class="text-xs font-extrabold text-slate-900">굿즈 제작용 칼선(도무송)</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">1000×1000px + 두꺼운 흰색 칼선 여백</p>
+              </div>
+              <button onclick="exportZIP('goods')" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold transition">굿즈 칼선 ZIP 받기</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측 (6 cols): 다국어 SEO 생성기 -->
+        <div class="lg:col-span-6 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3.5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <i data-lucide="globe" class="w-5 h-5 text-indigo-600"></i> 다국어 SEO & 등록 정보 AI 생성
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">한국어·영어·일본어·대만어 제목, 소개글, 검색 태그를 한 번에 생성합니다.</p>
+            </div>
+            <button onclick="generateMultilingualSEO()" id="btn-gen-seo" class="shrink-0 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AI SEO 생성
+            </button>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="flex justify-between mb-1">
+                <span class="font-extrabold text-slate-700">🇰🇷 한국어 (제목 / 소개 / 태그)</span>
+                <button onclick="copyField('seo-kr')" class="text-indigo-600 font-bold hover:underline">복사</button>
+              </div>
+              <textarea id="seo-kr" rows="3" class="w-full p-2 rounded-lg border border-slate-200 bg-white">[제목] 언박싱 기다리는 택배 상자 박쭈의 일상
+[소개] 현관문 앞에서 주인님을 기다리는 소심하고 귀여운 택배 상자 '박쭈'의 24종 일상 & 콤보 이모티콘!
+[태그] #택배상자 #박쭈 #귀여운 #일상 #직장인 #언박싱 #콤보이모티콘 #사물캐릭터 #손그림 #리액션</textarea>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="flex justify-between mb-1">
+                <span class="font-extrabold text-slate-700">🇺🇸 English (LINE Global)</span>
+                <button onclick="copyField('seo-en')" class="text-indigo-600 font-bold hover:underline">복사</button>
+              </div>
+              <textarea id="seo-en" rows="2" class="w-full p-2 rounded-lg border border-slate-200 bg-white">Title: Bakjju the Cute Cardboard Box
+Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun combo reactions.</textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <div class="flex justify-between mb-1">
+                  <span class="font-extrabold text-slate-700">🇯🇵 日本語 (LINE Japan)</span>
+                  <button onclick="copyField('seo-jp')" class="text-indigo-600 font-bold hover:underline">복사</button>
+                </div>
+                <textarea id="seo-jp" rows="3" class="w-full p-2 rounded-lg border border-slate-200 bg-white">タイトル: 宅配ボックス「パクチュ」の日常
+説明: 開封を待つかわいい段ボールキャラの24種＆コンボスタンプ！</textarea>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <div class="flex justify-between mb-1">
+                  <span class="font-extrabold text-slate-700">🇹🇼 繁體中文 (LINE Taiwan)</span>
+                  <button onclick="copyField('seo-tw')" class="text-indigo-600 font-bold hover:underline">복사</button>
+                </div>
+                <textarea id="seo-tw" rows="3" class="w-full p-2 rounded-lg border border-slate-200 bg-white">標題: 可愛快遞紙箱「朴쭈」的日常
+說明: 等待開箱的超萌紙箱角色24張日常與連續組合貼圖！</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PWA 설치 -->
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-5 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base font-extrabold flex items-center gap-2"><i data-lucide="smartphone" class="w-5 h-5"></i> 홈 화면에 앱으로 설치</h3>
+          <p class="text-xs text-emerald-50 mt-1">브라우저 주소창 없이 전체 화면으로 열리고, 한 번 열면 오프라인에서도 화면이 뜹니다. 안드로이드는 [설치] 버튼, 아이폰은 공유 → 홈 화면에 추가.</p>
+        </div>
+        <button onclick="promptInstall()" class="shrink-0 px-4 py-2.5 rounded-xl bg-white text-emerald-700 text-xs font-extrabold shadow-sm">📲 앱 설치하기</button>
+      </div>
+    </section>
+
+    <!-- ======================================================= -->
+    <!-- TAB 5: 📖 사용 설명서 -->
+    <!-- ======================================================= -->
+    <section id="tab-guide" class="tab-panel max-w-5xl mx-auto space-y-5 pb-10">
+      <div class="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 rounded-2xl p-6 text-white shadow-md">
+        <h2 class="text-xl sm:text-2xl font-black flex items-center gap-2">
+          <i data-lucide="book-open" class="w-6 h-6"></i> 이모티콘 스튜디오 AI Pro 사용 설명서
+        </h2>
+        <p class="text-indigo-100 text-xs sm:text-sm mt-1">내 주변 사물 사진 한 장으로 상업용 24종 이모티콘과 굿즈까지 완성하는 6단계 워크플로우</p>
+      </div>
+
+      <!-- 1. 6단계 워크플로우 -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <h3 class="text-base font-extrabold text-slate-900">1. 프로 워크플로우 6단계</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <span class="inline-block px-2 py-0.5 rounded bg-indigo-600 text-white font-black mb-1.5">STEP 1</span>
+            <h4 class="font-extrabold text-slate-900">사진 업로드 & 상표 클린업</h4>
+            <p class="text-slate-600 mt-1">택배 상자, 머그컵 등 사물 사진을 올리고 <b>상표·로고 자동 클린업</b>을 켜 저작권 위험을 제거합니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <span class="inline-block px-2 py-0.5 rounded bg-indigo-600 text-white font-black mb-1.5">STEP 2</span>
+            <h4 class="font-extrabold text-slate-900">의인화 스타일 & 세계관 생성</h4>
+            <p class="text-slate-600 mt-1">SD 2등신·심플 페이스 등 스타일을 고르고 AI 사물 분석으로 캐릭터 이름·세계관·24종 기획을 뽑습니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <span class="inline-block px-2 py-0.5 rounded bg-indigo-600 text-white font-black mb-1.5">STEP 3</span>
+            <h4 class="font-extrabold text-slate-900">캐릭터 시트 생성 & DNA 고정</h4>
+            <p class="text-slate-600 mt-1">정면·측면·뒷모습+표정 4종 시트를 먼저 만들고 <b>[🔒 DNA 고정]</b>을 눌러 24종 일관성을 확보합니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <span class="inline-block px-2 py-0.5 rounded bg-indigo-600 text-white font-black mb-1.5">STEP 4</span>
+            <h4 class="font-extrabold text-slate-900">24종 & 연속 콤보 생성</h4>
+            <p class="text-slate-600 mt-1">황금 비율 20종 + 채팅방 이어쓰기 콤보 2세트(4컷)를 일괄 생성합니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <span class="inline-block px-2 py-0.5 rounded bg-indigo-600 text-white font-black mb-1.5">STEP 5</span>
+            <h4 class="font-extrabold text-slate-900">부분 수정 & 작화 리마스터링</h4>
+            <p class="text-slate-600 mt-1">어색한 부위만 브러시로 칠해 다시 그리고, 누끼·흰색 외곽선·톤 통일을 24종 전체에 일괄 적용합니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <span class="inline-block px-2 py-0.5 rounded bg-indigo-600 text-white font-black mb-1.5">STEP 6</span>
+            <h4 class="font-extrabold text-slate-900">콤보 검수 & 멀티 ZIP 내보내기</h4>
+            <p class="text-slate-600 mt-1">다크모드 채팅방에서 콤보를 테스트하고 OGQ·LINE·굿즈 ZIP과 다국어 SEO를 내려받습니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 프로 퀄리티 꿀팁 -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-2.5 text-xs sm:text-sm">
+        <h3 class="text-base font-extrabold text-slate-900">2. 심사 통과 & 판매량을 높이는 프로 꿀팁</h3>
+        <ul class="space-y-2 text-slate-700 list-disc list-inside">
+          <li><b>상표권 반려 예방:</b> 실제 물건 사진에 브랜드 로고나 운송장 바코드가 남아 있으면 심사에서 반려됩니다. 반드시 <b>상표·로고 자동 클린업</b>을 켜고 하트 테이프·별 스티커 등 순수 창작 디테일로 치환하세요.</li>
+          <li><b>콤보 이모티콘 활용:</b> 21-22번, 23-24번처럼 연달아 보냈을 때 스토리가 이어지는 콤보 컷은 친구들끼리 장난치기 좋아 구매 전환율이 훨씬 높습니다.</li>
+          <li><b>다크모드 외곽선 기준:</b> 다크모드 사용자가 많으므로 <b>흰색 외곽선 8~12px</b>과 <b>경계 깎기(Erode) 1~2px</b>을 적용한 뒤 탭 3 다크모드 채팅방에서 최종 확인하세요.</li>
+        </ul>
+      </div>
+
+      <!-- 3. 플랫폼별 정책 및 규격 비교표 -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+        <h3 class="text-base font-extrabold text-slate-900">3. 플랫폼별 정책 및 규격 비교표</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                <th class="p-2.5 font-extrabold">플랫폼</th>
+                <th class="p-2.5 font-extrabold">정지형 규격</th>
+                <th class="p-2.5 font-extrabold">생성형 AI 정책</th>
+                <th class="p-2.5 font-extrabold">비고</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="p-2.5 font-extrabold text-emerald-700">네이버 OGQ 마켓</td>
+                <td class="p-2.5">740×640px (24장) + 메인/탭</td>
+                <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">허용 (AI 표기 필수)</span></td>
+                <td class="p-2.5">국내 블로그/카페/포스트 판매</td>
+              </tr>
+              <tr>
+                <td class="p-2.5 font-extrabold text-green-700">라인(LINE) 크리에이터스</td>
+                <td class="p-2.5">370×320px (8~40장) + 메인/탭</td>
+                <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-green-100 text-green-800 font-bold">허용</span></td>
+                <td class="p-2.5">일본·대만·태국 글로벌 마켓</td>
+              </tr>
+              <tr>
+                <td class="p-2.5 font-extrabold text-amber-700">카카오톡 이모티콘</td>
+                <td class="p-2.5">360×360px (32장, 150KB 이하)</td>
+                <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-bold">제안 제한</span></td>
+                <td class="p-2.5">시안 기획 및 직접 리터칭 용도</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3-2. 새 기능 (11/27) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+        <h3 class="text-base font-extrabold text-slate-900">3-2. 11/27 새로 붙은 기능</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🔐 가족 PIN 0623</h4>
+            <p class="text-slate-600 mt-1">처음 열면 PIN 4자리를 묻습니다. [이 기기에서 유지]를 켜면 다음부터 바로 열리고, 상단 🔒 로 언제든 다시 잠글 수 있습니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">☁️ 서버 API 연결</h4>
+            <p class="text-slate-600 mt-1">API 키를 넣지 않아도 관제탑 서버(<b>content-ai</b>)가 Gemini를 대신 호출합니다. 키가 화면·저장소에 남지 않습니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🔒 기준 캐릭터 1장 → 24장 고정</h4>
+            <p class="text-slate-600 mt-1">캐릭터 시트를 고정하거나 1번 컷을 먼저 만들면, 이후 모든 컷 생성에 그 이미지가 레퍼런스로 함께 전달되어 얼굴·비율·색감이 유지됩니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🚫 그림 속 글씨 금지</h4>
+            <p class="text-slate-600 mt-1">이미지 프롬프트에 "NO text, NO letters, NO speech bubbles, pure white background"를 서버가 강제로 넣어 AI 글씨 깨짐·오타 반려를 막습니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🖤 라이트·다크 일괄 검수판</h4>
+            <p class="text-slate-600 mt-1">3-2 탭에서 24종을 검정/흰 배경에 동시에 띄웁니다. 실제 채팅 크기(96px) 보기로 가독성까지 확인하세요.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🎞️ 움직이는 스티커 (GIF·APNG·WebM)</h4>
+            <p class="text-slate-600 mt-1">스튜디오 5번에서 모션을 고른 뒤 저장하면 움직이는 파일이 나옵니다. APNG는 투명 배경이라 카카오·OGQ 애니메이션 규격에 맞춰 쓸 수 있습니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">⚡ 실전 기획 프리셋</h4>
+            <p class="text-slate-600 mt-1">사물 의인화·블로거 리뷰·주식·직장인·가족·연인 24종 문구를 원클릭으로 채웁니다. 그 위에 [AI 사물 분석]을 누르면 사진에 맞게 다듬어 줍니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🌙 밝게/어둡게 + 📲 앱 설치</h4>
+            <p class="text-slate-600 mt-1">상단 🌙 버튼으로 테마를 바꾸고, 📲 로 홈 화면에 설치하면 주소창 없는 앱처럼 열립니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. FAQ -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-2.5">
+        <h3 class="text-base font-extrabold text-slate-900">4. 자주 묻는 질문 (FAQ)</h3>
+        <details class="rounded-xl border border-slate-200 p-3 open:bg-slate-50">
+          <summary class="font-bold text-xs sm:text-sm cursor-pointer">Q. API 호출 없이 바로 모든 기능을 테스트할 수 있나요?</summary>
+          <p class="text-xs text-slate-600 mt-2">네! 상단의 <b>[📦 빠른 체험: 택배 상자 캐릭터 24종 채우기]</b> 버튼을 누르면 샘플 택배 상자 사진, 턴어라운드 시트, 24종의 서로 다른 표정·포즈·콤보 이모티콘이 즉시 채워져 편집·리마스터링·콤보 테스트·ZIP 내보내기까지 모두 체험할 수 있습니다.</p>
+        </details>
+        <details class="rounded-xl border border-slate-200 p-3 open:bg-slate-50">
+          <summary class="font-bold text-xs sm:text-sm cursor-pointer">Q. 굿즈 제작용 칼선(도무송) 파일은 어디에 쓰나요?</summary>
+          <p class="text-xs text-slate-600 mt-2">1000×1000px 고해상도 PNG에 두꺼운 흰색 칼선 여백이 자동 추가되어 마플샵 등 POD 플랫폼에 바로 스티커나 아크릴 키링으로 업로드할 수 있습니다.</p>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 퀵 가이드 모달 -->
+  <div id="quick-guide-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-black text-slate-900">⚡ 30초 퀵 가이드</h3>
+        <button onclick="closeQuickGuideModal()" class="p-1 rounded-lg hover:bg-slate-100"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <ol class="space-y-2 text-xs sm:text-sm text-slate-700 list-decimal list-inside">
+        <li>상단의 <b>[📦 빠른 체험: 택배 상자 캐릭터 24종 채우기]</b>를 누르면 1초 만에 전체 기능을 체험할 수 있습니다.</li>
+        <li><b>탭 1:</b> 내 사물 사진을 올리고 상표 클린업 후 캐릭터 시트를 생성·고정하세요.</li>
+        <li><b>탭 2:</b> 캔버스에서 부분 수정 브러시, 누끼/외곽선, 작화 통일, 텍스트·파츠 드래그, 모션을 적용하세요.</li>
+        <li><b>탭 3:</b> 다크모드 채팅방에서 콤보 이어보내기 테스트 후 1080px 홍보 카드뉴스를 저장하세요.</li>
+        <li><b>탭 4:</b> OGQ·LINE·굿즈 ZIP 패키지와 다국어 SEO를 한 번에 내려받으세요.</li>
+      </ol>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeQuickGuideModal(); switchTab('tab-guide');" class="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold">자세한 설명서</button>
+        <button onclick="closeQuickGuideModal()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold">시작하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 컨테이너 -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <script>
+    // =========================================================================
+    // 1. 전역 상태 & 상수
+    // =========================================================================
+    // 서버 프록시 — 관제탑 Vercel(content-ai)이 Gemini 키를 대신 쓴다. 브라우저에 키를 두지 않는다.
+    const API_BASE = 'https://stock-dashboard-live-6frm.vercel.app';
+    const CONTENT_AI = API_BASE + '/api/content-ai';
+    const TEXT_MODEL = "gemini-3-flash-preview";   // 화면 표기용(실제 모델은 서버가 고른다)
+    const IMAGE_MODEL = "gemini-2.5-flash-image";  // 화면 표기용(서버가 3.1→2.5 순으로 시도)
+
+    // 24종 황금 비율 + 연속 콤보 2세트 메타데이터
+    const SLOT_META = [
+      { cat: "인사", combo: null }, { cat: "인사", combo: null }, { cat: "인사", combo: null },
+      { cat: "긍정/답변", combo: null }, { cat: "긍정/답변", combo: null }, { cat: "긍정/답변", combo: null }, { cat: "긍정/답변", combo: null },
+      { cat: "감사/사과", combo: null }, { cat: "감사/사과", combo: null }, { cat: "감사/사과", combo: null }, { cat: "감사/사과", combo: null },
+      { cat: "리액션/웃음", combo: null }, { cat: "리액션/웃음", combo: null }, { cat: "리액션/웃음", combo: null }, { cat: "리액션/웃음", combo: null },
+      { cat: "부정/화남", combo: null }, { cat: "부정/화남", combo: null }, { cat: "부정/화남", combo: null },
+      { cat: "특수상황", combo: null }, { cat: "특수상황", combo: null },
+      { cat: "콤보 1-A", combo: "1-A" }, { cat: "콤보 1-B", combo: "1-B" },
+      { cat: "콤보 2-A", combo: "2-A" }, { cat: "콤보 2-B", combo: "2-B" }
+    ];
+
+    // 기본 택배 상자("박쭈") 24종 샘플 기획
+    const DEFAULT_BOX_PLAN = [
+      { text: "택배 왔어용!", desc: "양팔 벌려 반갑게 인사", prompt: "waving happily, cheerful greeting" },
+      { text: "출근 배송..", desc: "피곤한 눈으로 커피 들고 있음", prompt: "sleepy tired eyes holding coffee" },
+      { text: "퇴근 완료!", desc: "신나게 점프하며 퇴근", prompt: "jumping joyfully leaving work" },
+      { text: "완전 좋아!", desc: "반짝이는 눈으로 엄지척", prompt: "sparkling eyes giving thumbs up" },
+      { text: "알겠습니당", desc: "씩씩하게 경례하는 포즈", prompt: "cute salute pose, confident smile" },
+      { text: "오키도키!", desc: "윙크하며 OK 사인", prompt: "winking playfully making OK sign" },
+      { text: "최고최고!", desc: "양손 엄지척 하고 환호", prompt: "cheering with both thumbs up" },
+      { text: "감사합니당♥", desc: "하트 안고 고개 숙여 인사", prompt: "hugging pink heart gratefully" },
+      { text: "죄송해용..", desc: "눈물 글썽이며 사과", prompt: "teary eyes apologizing deeply" },
+      { text: "살려주세용", desc: "바닥에 납작 엎드려 있음", prompt: "lying flat exhausted on floor" },
+      { text: "복 받으세요", desc: "공손히 두 손 모아 인사", prompt: "polite bow warm blessing" },
+      { text: "ㅋㅋㅋㅋㅋ", desc: "배 잡고 데굴데굴 폭소", prompt: "laughing out loud tears of joy" },
+      { text: "헐 대박!!", desc: "눈이 휘둥그레 깜짝 놀람", prompt: "shocked wide eyes and mouth" },
+      { text: "우와아아✨", desc: "감탄하며 박수 치기", prompt: "clapping in awe starry eyes" },
+      { text: "에헤헤~", desc: "볼 붉히며 수줍게 웃기", prompt: "blushing shyly cute giggle" },
+      { text: "아 진짜!!", desc: "볼 빵빵하게 부풀리고 화남", prompt: "angry eyebrows puffed cheeks" },
+      { text: "안돼요!!", desc: "양팔로 X자 그리며 거절", prompt: "crossing arms X shape refusal" },
+      { text: "부들부들..", desc: "주먹 쥐고 분노 참는 중", prompt: "trembling holding back anger" },
+      { text: "점심 뭐먹지", desc: "침 흘리며 턱 괴고 고민", prompt: "daydreaming about lunch drooling" },
+      { text: "잘 자요🌙", desc: "테이프 이불 덮고 꿀잠", prompt: "sleeping peacefully cozy blanket" },
+      { text: "두근두근..", desc: "상자 뚜껑이 들썩들썩 흔들림", prompt: "box lid shaking excitedly, anticipation" },
+      { text: "하트 폭탄!!", desc: "상자 뚜껑이 활짝 열리며 하트 폭발!", prompt: "box lid bursting open with explosion of pink hearts" },
+      { text: "비 맞았어..", desc: "비 맞아 쭈글쭈글 축 처짐", prompt: "rain-soaked crumpled sad box" },
+      { text: "테이프 부활!", desc: "하트 테이프 감고 반짝 부활!", prompt: "wrapped in shiny heart tape, heroic revival" }
+    ];
+
+    const state = {
+      uploadedPhotoDataUrl: null,
+      turnaroundSheetDataUrl: null,
+      sheetLocked: false,
+      selectedSlotIndex: 0,
+      studioBg: 'checker-light',
+      canvasZoom: 1,
+      inpaintMode: false,
+      isDrawingMask: false,
+      motionPlaying: true,
+      chatTheme: 'light',
+      animTime: 0,
+      slots: [],
+      // 캔버스 캐시 & 드래그 상태
+      loadedRawImg: null,
+      processedCharCanvas: null,
+      dragTarget: null, // { type: 'text' | 'part', index?: number, offsetX, offsetY }
+      presetKey: 'basic',
+      batchRunning: false,
+      batchStop: false,
+    };
+
+    function createDefaultSettings(text) {
+      return {
+        removeBg: true,
+        erode: 1,
+        strokeWidth: 10,
+        remaster: 'none',
+        text: text || '',
+        font: 'Jua',
+        fontSize: 58,
+        textColor: '#1e293b',
+        textStroke: '#ffffff',
+        textArch: 0,
+        textJitter: true,
+        textX: 300,
+        textY: 530,
+        textStyle: 'outline',   // outline | sticker | shadow | badge | neon | curve
+        textSlant: 0,
+        parts: [], // { type, x, y, size }
+        motion: 'none',
+        particle: 'none'
+      };
+    }
+
+    function initSlots() {
+      state.slots = SLOT_META.map((m, idx) => {
+        const d = DEFAULT_BOX_PLAN[idx];
+        return {
+          id: idx + 1,
+          category: m.cat,
+          combo: m.combo,
+          desc: d.desc,
+          prompt: d.prompt,
+          rawImageUrl: null,
+          finalImageUrl: null,
+          settings: createDefaultSettings(d.text)
+        };
+      });
+    }
+
+    // =========================================================================
+    // 2. 내장 고품질 데모 아트 생성기 (택배 상자 사진 / 턴어라운드 시트 / 24종)
+    // =========================================================================
+    function generateSampleBoxPhotoDataUrl() {
+      const c = document.createElement('canvas');
+      c.width = 400; c.height = 400;
+      const ctx = c.getContext('2d');
+      // 테이블 배경
+      ctx.fillStyle = '#e2e8f0'; ctx.fillRect(0, 0, 400, 400);
+      ctx.fillStyle = '#cbd5e1'; ctx.fillRect(0, 290, 400, 110);
+      // 상자 그림자
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.beginPath(); ctx.ellipse(205, 320, 125, 22, 0, 0, Math.PI * 2); ctx.fill();
+      // 택배 상자 본체 (정면 + 윗면)
+      ctx.fillStyle = '#d4a373'; ctx.fillRect(95, 130, 210, 185);
+      ctx.strokeStyle = '#9c6644'; ctx.lineWidth = 4; ctx.strokeRect(95, 130, 210, 185);
+      // 윗면
+      ctx.fillStyle = '#e6ccb2';
+      ctx.beginPath(); ctx.moveTo(95, 130); ctx.lineTo(135, 85); ctx.lineTo(345, 85); ctx.lineTo(305, 130); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // 옆면
+      ctx.fillStyle = '#b08968';
+      ctx.beginPath(); ctx.moveTo(305, 130); ctx.lineTo(345, 85); ctx.lineTo(345, 265); ctx.lineTo(305, 315); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // 테이프
+      ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(185, 85, 34, 85);
+      // 모의 운송장 & 택배 로고 (상표 클린업 대상 시연용)
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(115, 165, 95, 65);
+      ctx.fillStyle = '#ef4444'; ctx.font = 'bold 14px sans-serif'; ctx.fillText('FAST BOX', 124, 185);
+      ctx.fillStyle = '#334155';
+      for (let i = 0; i < 12; i++) ctx.fillRect(122 + i * 6, 195, (i % 2 === 0 ? 3 : 2), 24);
+      return c.toDataURL('image/png');
+    }
+
+    // 귀여운 의인화 택배 상자 캐릭터("박쭈") 벡터 드로잉 함수
+    function drawBakjjuCharacter(ctx, cx, cy, scale, moodIdx = 0) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      const isCrumpled = (moodIdx === 22);
+      const isLidShake = (moodIdx === 20);
+      const isHeartBurst = (moodIdx === 21);
+      const isRevival = (moodIdx === 23);
+      const isSleep = (moodIdx === 19);
+      const isAngry = (moodIdx === 15 || moodIdx === 17);
+      const isShock = (moodIdx === 12);
+      const isCry = (moodIdx === 8 || moodIdx === 9);
+      const isLaugh = (moodIdx === 11);
+
+      // 1. 짧은 다리
+      ctx.strokeStyle = '#3f2e21'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-42, 92); ctx.lineTo(-42, 122); ctx.moveTo(42, 92); ctx.lineTo(42, 122); ctx.stroke();
+
+      // 2. 짧은 팔 (포즈별 변화)
+      ctx.beginPath();
+      if (moodIdx === 0 || moodIdx === 2 || moodIdx === 6 || isHeartBurst || isRevival) {
+        ctx.moveTo(-98, 10); ctx.lineTo(-132, -32);
+        ctx.moveTo(98, 10); ctx.lineTo(132, -32);
+      } else if (moodIdx === 16) {
+        // X자 팔
+        ctx.moveTo(-88, 25); ctx.lineTo(35, -15);
+        ctx.moveTo(88, 25); ctx.lineTo(-35, -15);
+      } else {
+        ctx.moveTo(-98, 20); ctx.lineTo(-125, 45);
+        ctx.moveTo(98, 20); ctx.lineTo(125, 45);
+      }
+      ctx.stroke();
+
+      // 3. 상자 본체 (둥근 크라프트 박스)
+      ctx.fillStyle = isCrumpled ? '#a68a64' : '#deb887';
+      ctx.strokeStyle = '#3f2e21'; ctx.lineWidth = 9;
+      ctx.beginPath();
+      if (isCrumpled) {
+        ctx.moveTo(-95, -75); ctx.quadraticCurveTo(0, -55, 95, -75);
+        ctx.lineTo(85, 95); ctx.quadraticCurveTo(0, 105, -85, 95); ctx.closePath();
+      } else {
+        ctx.roundRect(-98, -82, 196, 178, 26);
+      }
+      ctx.fill(); ctx.stroke();
+
+      // 4. 상자 뚜껑 날개
+      ctx.fillStyle = '#e9cfa8';
+      if (isHeartBurst) {
+        // 활짝 열린 뚜껑
+        ctx.beginPath(); ctx.moveTo(-98, -82); ctx.lineTo(-135, -135); ctx.lineTo(-35, -110); ctx.lineTo(-10, -82); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(98, -82); ctx.lineTo(135, -135); ctx.lineTo(35, -110); ctx.lineTo(10, -82); ctx.closePath(); ctx.fill(); ctx.stroke();
+        // 하트 폭탄!
+        ctx.font = '44px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('💖', 0, -125); ctx.fillText('💕', -55, -148); ctx.fillText('❤️', 55, -145);
+      } else {
+        const lidLift = isLidShake ? -12 : 0;
+        ctx.beginPath(); ctx.roundRect(-104, -96 + lidLift, 208, 26, 10); ctx.fill(); ctx.stroke();
+      }
+
+      // 5. 안전한 오리지널 하트 테이프 (로고 대체)
+      ctx.fillStyle = isRevival ? '#f472b6' : '#fbcfe8';
+      ctx.fillRect(-20, -94, 40, 44);
+      ctx.strokeStyle = '#3f2e21'; ctx.lineWidth = 4; ctx.strokeRect(-20, -94, 40, 44);
+      ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('♥', 0, -64);
+
+      if (isRevival) {
+        // 부활 반짝이 + 대각선 테이프
+        ctx.fillStyle = 'rgba(244,114,182,0.5)';
+        ctx.save(); ctx.rotate(-0.3); ctx.fillRect(-95, 10, 190, 20); ctx.restore();
+        ctx.font = '32px sans-serif'; ctx.fillText('✨', -115, -90); ctx.fillText('✨', 115, -90);
+      }
+
+      // 6. 볼 홍조
+      ctx.fillStyle = isAngry ? 'rgba(239,68,68,0.55)' : 'rgba(251,113,133,0.55)';
+      ctx.beginPath(); ctx.ellipse(-56, 22, 18, 10, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(56, 22, 18, 10, 0, 0, Math.PI * 2); ctx.fill();
+
+      // 7. 표정 (눈 & 입)
+      ctx.strokeStyle = '#291d14'; ctx.fillStyle = '#291d14'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+      if (isSleep) {
+        ctx.beginPath(); ctx.moveTo(-55, -2); ctx.lineTo(-28, -2); ctx.moveTo(28, -2); ctx.lineTo(55, -2); ctx.stroke();
+        ctx.font = '28px sans-serif'; ctx.fillText('💤', 75, -60);
+      } else if (isLaugh || moodIdx === 14) {
+        ctx.beginPath(); ctx.arc(-42, 4, 15, Math.PI, 0); ctx.stroke();
+        ctx.beginPath(); ctx.arc(42, 4, 15, Math.PI, 0); ctx.stroke();
+      } else if (isAngry) {
+        ctx.beginPath(); ctx.moveTo(-56, -16); ctx.lineTo(-26, -2); ctx.moveTo(56, -16); ctx.lineTo(26, -2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(-40, 4, 8, 0, Math.PI * 2); ctx.arc(40, 4, 8, 0, Math.PI * 2); ctx.fill();
+      } else if (isCry || isCrumpled) {
+        ctx.beginPath(); ctx.arc(-42, 2, 10, 0, Math.PI * 2); ctx.arc(42, 2, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath(); ctx.ellipse(-42, 24, 6, 14, 0, 0, Math.PI * 2); ctx.ellipse(42, 24, 6, 14, 0, 0, Math.PI * 2); ctx.fill();
+      } else if (isShock) {
+        ctx.beginPath(); ctx.arc(-42, 0, 15, 0, Math.PI * 2); ctx.arc(42, 0, 15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-46, -5, 5, 0, Math.PI * 2); ctx.arc(38, -5, 5, 0, Math.PI * 2); ctx.fill();
+      } else {
+        // 기본 반짝이는 눈
+        ctx.beginPath(); ctx.arc(-42, 0, 12, 0, Math.PI * 2); ctx.arc(42, 0, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-46, -4, 4.5, 0, Math.PI * 2); ctx.arc(38, -4, 4.5, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // 입
+      ctx.strokeStyle = '#291d14'; ctx.lineWidth = 6;
+      if (isShock) {
+        ctx.fillStyle = '#fb7185'; ctx.beginPath(); ctx.ellipse(0, 32, 12, 16, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      } else if (isAngry || isCrumpled || isCry) {
+        ctx.beginPath(); ctx.arc(0, 42, 16, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+      } else if (isLaugh || isHeartBurst || moodIdx === 0 || moodIdx === 3) {
+        ctx.fillStyle = '#fb7185';
+        ctx.beginPath(); ctx.arc(0, 22, 18, 0, Math.PI); ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.arc(0, 20, 14, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+      }
+
+      // 소품 (커피, 하트, 빗방울 등)
+      if (moodIdx === 1) { ctx.font = '38px sans-serif'; ctx.fillText('☕', 95, 35); }
+      if (moodIdx === 7) { ctx.font = '46px sans-serif'; ctx.fillText('💖', 0, 58); }
+      if (moodIdx === 18) { ctx.font = '36px sans-serif'; ctx.fillText('🍜', 92, -65); }
+      if (isCrumpled) { ctx.font = '32px sans-serif'; ctx.fillText('🌧️', 0, -118); }
+
+      ctx.restore();
+    }
+
+    function generateSampleTurnaroundSheetDataUrl() {
+      const c = document.createElement('canvas');
+      c.width = 800; c.height = 450;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 800, 450);
+      ctx.fillStyle = '#f8fafc'; ctx.fillRect(16, 16, 768, 418);
+      ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 3; ctx.strokeRect(16, 16, 768, 418);
+
+      ctx.fillStyle = '#334155'; ctx.font = 'bold 20px "Noto Sans KR"';
+      ctx.fillText('CHARACTER SHEET : 박쭈 (Bakjju) - DNA Reference', 36, 52);
+
+      const labels = ['FRONT (정면)', 'HAPPY (기쁨)', 'ANGRY (화남)', 'SHOCK (놀람)'];
+      const moods = [0, 11, 15, 12];
+      for (let i = 0; i < 4; i++) {
+        const x = 115 + i * 190;
+        drawBakjjuCharacter(ctx, x, 240, 0.62, moods[i]);
+        ctx.fillStyle = '#64748b'; ctx.font = 'bold 14px "Noto Sans KR"'; ctx.textAlign = 'center';
+        ctx.fillText(labels[i], x, 395);
+      }
+      return c.toDataURL('image/png');
+    }
+
+    function generateSampleBoxEmoticonRawUrl(slotIdx) {
+      const c = document.createElement('canvas');
+      c.width = 500; c.height = 500;
+      const ctx = c.getContext('2d');
+      // 누끼 테스트용 순백색 배경
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 500, 500);
+      drawBakjjuCharacter(ctx, 250, 255, 1.12, slotIdx);
+      return c.toDataURL('image/png');
+    }
+
+    // =========================================================================
+    // 3. UI 유틸리티 (탭, 토스트, 모달, 저장/불러오기)
+    // =========================================================================
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+
+      document.querySelectorAll('.main-tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabId) {
+          btn.className = "main-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-sm";
+        } else {
+          btn.className = "main-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200";
+        }
+      });
+
+      if (tabId === 'tab-studio') {
+        renderStudioThumbGrid();
+        loadSelectedSlotToStudio();
+      } else if (tabId === 'tab-review') {
+        renderReview24Grid();
+        renderPromoCard();
+      } else if (tabId === 'tab-board') {
+        renderBoard();
+      }
+      lucide.createIcons();
+    }
+
+    function showToast(msg, type = 'info') {
+      const box = document.getElementById('toast-container');
+      const colors = { info: 'bg-slate-800', success: 'bg-emerald-600', error: 'bg-rose-600', warn: 'bg-amber-500' };
+      const el = document.createElement('div');
+      el.className = `pointer-events-auto px-4 py-2.5 rounded-xl text-white text-xs font-bold shadow-lg transition-all transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+      el.textContent = msg;
+      box.appendChild(el);
+      requestAnimationFrame(() => el.classList.remove('translate-y-2', 'opacity-0'));
+      setTimeout(() => {
+        el.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => el.remove(), 300);
+      }, 3000);
+    }
+
+    function openQuickGuideModal() { document.getElementById('quick-guide-modal').classList.remove('hidden'); lucide.createIcons(); }
+    function closeQuickGuideModal() { document.getElementById('quick-guide-modal').classList.add('hidden'); }
+
+    function copyField(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.select();
+      try {
+        document.execCommand('copy');
+        showToast('클립보드에 복사되었습니다!', 'success');
+      } catch (e) {
+        showToast('복사에 실패했습니다.', 'error');
+      }
+    }
+
+    function updateDoneCount() {
+      const n = state.slots.filter(s => !!s.finalImageUrl).length;
+      const el = document.getElementById('header-done-count');
+      if (el) el.textContent = n;
+      const bc = document.getElementById('board-count');
+      if (bc) bc.textContent = '완성 ' + n + ' / 24';
+    }
+
+    function saveProjectToLocal() {
+      try {
+        const payload = {
+          charName: document.getElementById('dna-char-name').value,
+          worldview: document.getElementById('dna-worldview').value,
+          visualPrompt: document.getElementById('dna-visual-prompt').value,
+          anthro: document.getElementById('select-anthro').value,
+          artstyle: document.getElementById('select-artstyle').value,
+          slotsMeta: state.slots.map(s => ({ desc: s.desc, prompt: s.prompt, settings: s.settings }))
+        };
+        localStorage.setItem('emoticon_pro_project', JSON.stringify(payload));
+        showToast('프로젝트 기획 및 설정이 저장되었습니다!', 'success');
+      } catch (e) {
+        showToast('저장 공간이 부족합니다.', 'error');
+      }
+    }
+
+    function loadProjectFromLocal() {
+      const raw = localStorage.getItem('emoticon_pro_project');
+      if (!raw) { showToast('저장된 프로젝트가 없습니다.', 'warn'); return; }
+      try {
+        const data = JSON.parse(raw);
+        document.getElementById('dna-char-name').value = data.charName || '박쭈';
+        document.getElementById('dna-worldview').value = data.worldview || '';
+        document.getElementById('dna-visual-prompt').value = data.visualPrompt || '';
+        if (data.anthro) document.getElementById('select-anthro').value = data.anthro;
+        if (data.artstyle) document.getElementById('select-artstyle').value = data.artstyle;
+        if (Array.isArray(data.slotsMeta)) {
+          data.slotsMeta.forEach((m, i) => {
+            if (state.slots[i]) {
+              state.slots[i].desc = m.desc;
+              state.slots[i].prompt = m.prompt;
+              state.slots[i].settings = { ...createDefaultSettings(), ...m.settings };
+            }
+          });
+        }
+        renderPlanSlotsGrid();
+        showToast('저장된 프로젝트를 불러왔습니다!', 'success');
+      } catch (e) {
+        showToast('불러오기에 실패했습니다.', 'error');
+      }
+    }
+
+    // =========================================================================
+    // 4. Gemini API 헬퍼 (Exponential Backoff)
+    // =========================================================================
+    // =========================================================================
+    // 4-b. 서버 API 헬퍼 — 키 입력 없이 관제탑 content-ai 를 부른다
+    // =========================================================================
+    async function callContentAI(payload, opts) {
+      opts = opts || {};
+      const ctrl = new AbortController();
+      const timeout = opts.timeout || 85000;
+      const timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, timeout);
+      try {
+        const res = await fetch(CONTENT_AI, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: ctrl.signal
+        });
+        const json = await res.json().catch(function () { return null; });
+        if (!json || typeof json !== 'object') throw new Error('서버 응답을 읽지 못했습니다 (HTTP ' + res.status + ')');
+        return json;
+      } catch (err) {
+        if (err && (err.name === 'AbortError' || err.code === 20)) {
+          throw new Error('서버 응답이 너무 늦습니다(시간 초과). 잠시 뒤 다시 시도해 주세요.');
+        }
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function apiMessage(json, fallback) {
+      const j = json || {};
+      if (j.reason === 'missing_gemini_key') return '서버 Gemini 키가 설정되지 않았습니다. 관제탑 Vercel 환경변수를 확인해 주세요.';
+      if (j.reason === 'gemini_image_quota' || j.reason === 'quota_exceeded') return 'Gemini 이미지 하루 한도를 다 썼습니다. 내일 다시 시도해 주세요.';
+      if (j.reason === 'body_too_large') return '이미지가 너무 큽니다. 더 작은 사진으로 다시 시도해 주세요.';
+      if (j.reason === 'disabled') return '이 환경에서는 Gemini 호출이 꺼져 있습니다.';
+      return j.message || fallback || 'AI 호출에 실패했습니다.';
+    }
+
+    /* 기준 이미지를 1024px JPEG 로 줄여 전송한다(요청 본문 4.2MB 한도 보호) */
+    function downscaleDataUrl(dataUrl, maxSide, quality) {
+      maxSide = maxSide || 1024; quality = quality || 0.9;
+      return new Promise(function (resolve) {
+        if (!dataUrl || String(dataUrl).indexOf('data:image/') !== 0) return resolve(null);
+        const img = new Image();
+        img.onload = function () {
+          try {
+            const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(img.width * scale));
+            c.height = Math.max(1, Math.round(img.height * scale));
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+            ctx.drawImage(img, 0, 0, c.width, c.height);
+            const out = c.toDataURL('image/jpeg', quality);
+            resolve({ data: out.split(',')[1], mimeType: 'image/jpeg', width: c.width, height: c.height });
+          } catch (e) { resolve(null); }
+        };
+        img.onerror = function () { resolve(null); };
+        img.src = dataUrl;
+      });
+    }
+
+    /* 24종 전체에 넘길 기준 캐릭터 1장 — 고정 시트 > 1번 컷 원본 > 업로드 사진 */
+    async function buildReferencePayload() {
+      let src = null, note = '없음';
+      if (state.sheetLocked && state.turnaroundSheetDataUrl) { src = state.turnaroundSheetDataUrl; note = '캐릭터 시트(고정)'; }
+      else if (state.slots[0] && state.slots[0].rawImageUrl) { src = state.slots[0].rawImageUrl; note = '1번 컷 원본'; }
+      else if (state.uploadedPhotoDataUrl) { src = state.uploadedPhotoDataUrl; note = '업로드 사진'; }
+      if (!src) return { ref: null, note: note };
+      const down = await downscaleDataUrl(src, 1024, 0.9);
+      return down ? { ref: { data: down.data, mimeType: down.mimeType }, note: note } : { ref: null, note: '없음' };
+    }
+
+    function updateReferenceStatus() {
+      const el = document.getElementById('reference-status-text');
+      if (!el) return;
+      let note = '없음 — 사진을 올리고 캐릭터 시트를 먼저 만들어 주세요.';
+      if (state.sheetLocked && state.turnaroundSheetDataUrl) note = '캐릭터 시트(고정) — 24종 전체에 자동 적용됩니다.';
+      else if (state.slots[0] && state.slots[0].rawImageUrl) note = '1번 컷 원본 — 24종 전체에 자동 적용됩니다.';
+      else if (state.uploadedPhotoDataUrl) note = '업로드 사진 — 시트를 만들면 훨씬 정확합니다.';
+      el.textContent = note;
+    }
+
+    async function initServerStatus() {
+      const host = document.getElementById('reference-status');
+      if (!host) return;
+      let chip = document.getElementById('server-chip');
+      if (!chip) {
+        chip = document.createElement('span');
+        chip.id = 'server-chip';
+        chip.className = 'ml-auto px-2 py-0.5 rounded-md bg-slate-100 text-slate-500';
+        chip.textContent = '서버 확인 중…';
+        host.appendChild(chip);
+      }
+      try {
+        const res = await fetch(CONTENT_AI + '?ping=1', { cache: 'no-store' });
+        const j = await res.json();
+        if (j && j.keyConfigured) {
+          chip.textContent = '☁️ 서버 연결됨';
+          chip.className = 'ml-auto px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700';
+        } else {
+          chip.textContent = '⚠️ 서버 키 미설정';
+          chip.className = 'ml-auto px-2 py-0.5 rounded-md bg-amber-100 text-amber-700';
+        }
+      } catch (e) {
+        chip.textContent = '⚠️ 서버 연결 실패';
+        chip.className = 'ml-auto px-2 py-0.5 rounded-md bg-rose-100 text-rose-700';
+      }
+    }
+
+    function esc(v) {
+      return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // =========================================================================
+    // 5. 빠른 체험 (택배 상자 캐릭터 24종 일괄 채우기)
+    // =========================================================================
+    async function runQuickBoxDemo() {
+      showToast('📦 택배 상자 캐릭터 "박쭈" 24종을 생성하는 중...', 'info');
+      loadSampleBoxPhoto(true);
+      const sheetUrl = generateSampleTurnaroundSheetDataUrl();
+      setTurnaroundSheetPreview(sheetUrl);
+      state.sheetLocked = true;
+      updateLockSheetUI();
+
+      for (let i = 0; i < 24; i++) {
+        const slot = state.slots[i];
+        slot.rawImageUrl = generateSampleBoxEmoticonRawUrl(i);
+        slot.finalImageUrl = await renderSlotSnapshot(slot);
+      }
+      renderPlanSlotsGrid();
+      renderStudioThumbGrid();
+      loadSelectedSlotToStudio();
+      renderReview24Grid();
+      renderPromoCard();
+      renderBoard();
+      updateDoneCount();
+      updateReferenceStatus();
+      showToast('📦 "박쭈" 턴어라운드 시트 + 24종(콤보 포함)이 완성되었습니다!', 'success');
+    }
+
+    // =========================================================================
+    // 6. 탭 1: 사진 업로드, AI 사물 분석, 턴어라운드 시트, 24종 기획
+    // =========================================================================
+    function setUploadedPhotoPreview(url) {
+      state.uploadedPhotoDataUrl = url;
+      const img = document.getElementById('uploaded-photo-preview');
+      const empty = document.getElementById('uploaded-photo-empty');
+      img.src = url; img.classList.remove('hidden'); empty.classList.add('hidden');
+    }
+
+    function handlePhotoUpload(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        setUploadedPhotoPreview(ev.target.result);
+        showToast('사물 사진이 업로드되었습니다! [AI 사물 분석]을 눌러보세요.', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadSampleBoxPhoto(silent = false) {
+      setUploadedPhotoPreview(generateSampleBoxPhotoDataUrl());
+      if (!silent) showToast('샘플 택배 상자 사진이 로드되었습니다.', 'info');
+    }
+
+    function setTurnaroundSheetPreview(url) {
+      state.turnaroundSheetDataUrl = url;
+      const img = document.getElementById('turnaround-sheet-img');
+      const empty = document.getElementById('turnaround-sheet-empty');
+      img.src = url; img.classList.remove('hidden'); empty.classList.add('hidden');
+    }
+
+    function toggleLockSheetDNA() {
+      if (!state.turnaroundSheetDataUrl) {
+        showToast('먼저 캐릭터 시트를 생성해 주세요.', 'warn');
+        return;
+      }
+      state.sheetLocked = !state.sheetLocked;
+      updateLockSheetUI();
+      showToast(state.sheetLocked ? '🔒 캐릭터 시트가 24종 기준(DNA)으로 고정되었습니다!' : '고정이 해제되었습니다.', 'info');
+    }
+
+    function updateLockSheetUI() {
+      const btn = document.getElementById('btn-lock-sheet');
+      if (state.sheetLocked) {
+        btn.className = "flex-1 py-2 px-3 rounded-xl bg-emerald-600 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition";
+        btn.textContent = "🔒 24종 기준(DNA) 고정됨";
+      } else {
+        btn.className = "flex-1 py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-extrabold flex items-center justify-center gap-1.5 transition";
+        btn.textContent = "🔓 이 시트를 24종 기준(DNA)으로 고정";
+      }
+    }
+
+    async function analyzePhotoAndPlanAI() {
+      const btn = document.getElementById('btn-analyze-photo');
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<div class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin-fast"></div> 사물 분석 & 24종 기획 중...`;
+
+      try {
+        const anthro = document.getElementById('select-anthro').value;
+        const artStyle = document.getElementById('select-artstyle').value;
+        const cleanup = document.getElementById('toggle-logo-cleanup').checked;
+
+        const payload = {
+          action: 'emoticon_plan',
+          charName: document.getElementById('dna-char-name').value,
+          concept: document.getElementById('dna-worldview').value,
+          visualPrompt: document.getElementById('dna-visual-prompt').value,
+          anthro: anthro,
+          artStyle: artStyle,
+          cleanup: cleanup,
+          preset: state.presetKey || 'basic',
+          platform: 'ogq'
+        };
+        if (state.uploadedPhotoDataUrl) {
+          const photo = await downscaleDataUrl(state.uploadedPhotoDataUrl, 1024, 0.9);
+          if (photo) payload.photo = { data: photo.data, mimeType: photo.mimeType };
+        }
+        const json = await callContentAI(payload, { timeout: 95000 });
+        if (!json.ok) throw new Error(apiMessage(json, 'AI 기획에 실패했습니다.'));
+
+        const d = json.data || {};
+        if (d.charName) document.getElementById('dna-char-name').value = d.charName;
+        if (d.worldview) document.getElementById('dna-worldview').value = d.worldview;
+        if (d.visualPrompt) document.getElementById('dna-visual-prompt').value = d.visualPrompt;
+        (d.slots || []).slice(0, 24).forEach((item, idx) => {
+          if (!state.slots[idx]) return;
+          if (item.desc) state.slots[idx].desc = item.desc;
+          if (item.prompt) state.slots[idx].prompt = item.prompt;
+          if (item.text) state.slots[idx].settings.text = item.text;
+        });
+        renderPlanSlotsGrid();
+        renderStudioThumbGrid();
+        showToast(`'${d.charName || '캐릭터'}' 24종 기획 완성! [캐릭터 시트 생성] → [24종 일괄 AI 생성] 순서로 진행하세요.`, 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('AI 기획 연결 실패 — ' + (err.message || '서버 오류'), 'warn');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+        lucide.createIcons();
+      }
+    }
+
+    async function generateTurnaroundSheetAI() {
+      const btn = document.getElementById('btn-gen-sheet');
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin-fast"></div> 시트 생성 중...`;
+
+      try {
+        const dnaPrompt = document.getElementById('dna-visual-prompt').value;
+        const anthro = document.getElementById('select-anthro').value;
+        const artStyle = document.getElementById('select-artstyle').value;
+        const cleanup = document.getElementById('toggle-logo-cleanup').checked;
+
+        const prompt = `Create a clean character turnaround reference sheet on a pure flat white background (#FFFFFF): front view, 3/4 side view, back view, plus 4 cute facial expressions in one row. Character: ${dnaPrompt}. Style: ${anthro}, ${artStyle}.` +
+          (cleanup ? ' Strictly remove any brand logos or real-world text, replace with cute original heart tape or star stickers.' : '') +
+          ' No watermark, clean bold sticker line art, consistent colors.';
+
+        const ref = await buildReferencePayload();
+        const payload = { action: 'emoticon_image', mode: 'sheet', prompt: prompt, aspectRatio: '16:9' };
+        if (ref.ref) payload.reference = ref.ref;
+        if (!ref.ref && state.uploadedPhotoDataUrl) {
+          const photo = await downscaleDataUrl(state.uploadedPhotoDataUrl, 1024, 0.9);
+          if (photo) payload.reference = { data: photo.data, mimeType: photo.mimeType };
+        }
+
+        const json = await callContentAI(payload, { timeout: 110000 });
+        if (!json.ok) throw new Error(apiMessage(json, '캐릭터 시트 생성에 실패했습니다.'));
+        setTurnaroundSheetPreview(`data:${json.mime || 'image/png'};base64,${json.data}`);
+        showToast('캐릭터 턴어라운드 시트가 생성되었습니다! [DNA 고정]을 눌러 24종에 적용하세요.', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('시트 생성 실패 — ' + (err.message || '서버 오류'), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+        lucide.createIcons();
+      }
+    }
+
+    function renderPlanSlotsGrid() {
+      const grid = document.getElementById('plan-slots-grid');
+      grid.innerHTML = state.slots.map((slot, idx) => `
+        <div class="p-2.5 rounded-xl border ${slot.combo ? 'border-fuchsia-200 bg-fuchsia-50/30' : 'border-slate-200 bg-slate-50/50'} flex items-center gap-2.5">
+          <div onclick="openInStudio(${idx})" class="w-14 h-14 rounded-xl bg-checker-light border border-slate-200 overflow-hidden shrink-0 cursor-pointer flex items-center justify-center hover:ring-2 hover:ring-indigo-400">
+            ${slot.finalImageUrl ? `<img src="${slot.finalImageUrl}" class="w-full h-full object-contain"/>` : `<span class="text-xs font-extrabold text-slate-400">#${String(slot.id).padStart(2, '0')}</span>`}
+          </div>
+          <div class="flex-1 min-w-0 space-y-1">
+            <div class="flex items-center gap-1">
+              <span class="text-[10px] font-black px-1.5 py-0.5 rounded ${slot.combo ? 'bg-fuchsia-600 text-white' : 'bg-indigo-100 text-indigo-700'}">
+                ${slot.combo ? '🔗 ' + slot.category : '#' + String(slot.id).padStart(2, '0') + ' ' + slot.category}
+              </span>
+              <input type="text" value="${esc(slot.settings.text)}" onchange="state.slots[${idx}].settings.text=this.value" class="flex-1 min-w-0 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-xs font-bold text-slate-800" />
+            </div>
+            <input type="text" value="${esc(slot.desc)}" onchange="state.slots[${idx}].desc=this.value" class="w-full bg-white border border-slate-200 rounded px-1.5 py-0.5 text-[11px] text-slate-600" />
+          </div>
+          <button onclick="generateSingleSlotAI(${idx})" title="이 컷만 AI 생성" class="p-2 rounded-lg bg-white border border-slate-200 hover:bg-indigo-50 text-indigo-600 shrink-0">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          </button>
+          <button onclick="openInStudio(${idx})" title="스튜디오에서 편집" class="p-2 rounded-lg bg-white border border-slate-200 hover:bg-indigo-50 text-indigo-600 shrink-0">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function openInStudio(idx) {
+      state.selectedSlotIndex = idx;
+      switchTab('tab-studio');
+    }
+
+    async function generateSingleSlotAI(idx) {
+      const slot = state.slots[idx];
+      if (!slot) return;
+      const loader = document.getElementById('studio-loader');
+      if (loader) {
+        document.getElementById('studio-loader-msg').textContent = `#${slot.id} AI 이모티콘 생성 중...`;
+        loader.classList.remove('hidden');
+      }
+
+      try {
+        const dnaPrompt = document.getElementById('dna-visual-prompt').value;
+        const artStyle = document.getElementById('select-artstyle').value;
+        const anthro = document.getElementById('select-anthro').value;
+        const cleanup = document.getElementById('toggle-logo-cleanup').checked;
+
+        const prompt = `Cute Korean messenger emoticon sticker of this exact character. Character DNA: ${dnaPrompt}. ` +
+          `Anthropomorphic style: ${anthro}. Art style: ${artStyle}. Pose and expression: ${slot.prompt} (${slot.desc}).` +
+          (cleanup ? ' Remove all real brand logos and printed text; replace with original heart tape or star stickers.' : '');
+
+        const ref = await buildReferencePayload();
+        const payload = { action: 'emoticon_image', mode: 'sticker', prompt: prompt, aspectRatio: '1:1' };
+        if (ref.ref) payload.reference = ref.ref;
+
+        const json = await callContentAI(payload, { timeout: 110000 });
+        if (!json.ok) throw new Error(apiMessage(json, '이미지 생성에 실패했습니다.'));
+
+        slot.rawImageUrl = `data:${json.mime || 'image/png'};base64,${json.data}`;
+        slot.finalImageUrl = await renderSlotSnapshot(slot);
+        if (idx === state.selectedSlotIndex) loadSelectedSlotToStudio();
+        renderPlanSlotsGrid();
+        renderStudioThumbGrid();
+        renderReview24Grid();
+        renderBoard();
+        updateDoneCount();
+        updateReferenceStatus();
+        showToast(`#${slot.id} 생성 완료 (${ref.note} 기준)`, 'success');
+      } catch (err) {
+        console.error(err);
+        showToast(`#${slot.id} 생성 실패 — ${err.message || '서버 오류'}`, 'error');
+      } finally {
+        if (loader) loader.classList.add('hidden');
+      }
+    }
+
+    async function batchGenerateAll24AI() {
+      const btn = document.getElementById('btn-batch-24');
+      if (state.batchRunning) {
+        state.batchStop = true;
+        showToast('일괄 생성을 중단합니다...', 'warn');
+        return;
+      }
+      state.batchRunning = true;
+      state.batchStop = false;
+      const orig = btn.innerHTML;
+      let okCount = 0, failCount = 0;
+      try {
+        for (let i = 0; i < 24; i++) {
+          if (state.batchStop) break;
+          btn.innerHTML = `⏹ 중단 (${i + 1}/24)`;
+          const before = state.slots[i].finalImageUrl;
+          await generateSingleSlotAI(i);
+          if (state.slots[i].finalImageUrl && state.slots[i].finalImageUrl !== before) okCount++;
+          else failCount++;
+        }
+        showToast(`24종 일괄 ${state.batchStop ? '중단' : '완료'} — 성공 ${okCount} / 실패 ${failCount}`, state.batchStop ? 'warn' : 'success');
+      } finally {
+        state.batchRunning = false;
+        btn.innerHTML = orig;
+        lucide.createIcons();
+      }
+    }
+
+    // =========================================================================
+    // 7. 탭 2: 스튜디오 & 캔버스 파이프라인 (누끼, Erode, 리마스터, 인페인팅, 드래그, 모션)
+    // =========================================================================
+    function renderStudioThumbGrid() {
+      const grid = document.getElementById('studio-thumb-grid');
+      grid.innerHTML = state.slots.map((slot, idx) => {
+        const active = idx === state.selectedSlotIndex;
+        return `
+          <button onclick="selectStudioSlot(${idx})" class="aspect-square rounded-xl p-1 border relative overflow-hidden bg-checker-light transition ${active ? 'border-indigo-600 ring-2 ring-indigo-500' : 'border-slate-200 hover:border-indigo-300'}">
+            ${slot.finalImageUrl ? `<img src="${slot.finalImageUrl}" class="w-full h-full object-contain"/>` : `<span class="text-[11px] font-bold text-slate-400">#${slot.id}</span>`}
+            <span class="absolute top-1 left-1 px-1 rounded bg-slate-900/75 text-white text-[9px] font-black">${slot.id}</span>
+            ${slot.combo ? `<span class="absolute bottom-1 right-1 px-1 rounded bg-fuchsia-600 text-white text-[8px] font-black">콤보</span>` : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectStudioSlot(idx) {
+      state.selectedSlotIndex = idx;
+      clearInpaintMask();
+      renderStudioThumbGrid();
+      loadSelectedSlotToStudio();
+    }
+
+    function loadSelectedSlotToStudio() {
+      const slot = state.slots[state.selectedSlotIndex];
+      const s = slot.settings;
+      document.getElementById('studio-active-badge').textContent = `#${String(slot.id).padStart(2,'0')}`;
+      document.getElementById('canvas-cat-badge').textContent = `#${String(slot.id).padStart(2,'0')} ${slot.category}`;
+      const cb = document.getElementById('canvas-combo-badge');
+      if (slot.combo) { cb.classList.remove('hidden'); cb.textContent = `🔗 콤보 ${slot.combo}`; }
+      else cb.classList.add('hidden');
+
+      document.getElementById('ctrl-rembg').checked = s.removeBg;
+      document.getElementById('ctrl-erode').value = s.erode;
+      document.getElementById('val-erode').textContent = s.erode + 'px';
+      document.getElementById('ctrl-stroke').value = s.strokeWidth;
+      document.getElementById('val-stroke').textContent = s.strokeWidth + 'px';
+      document.getElementById('ctrl-remaster').value = s.remaster;
+      document.getElementById('ctrl-text').value = s.text;
+      document.getElementById('ctrl-font').value = s.font;
+      document.getElementById('ctrl-tcolor').value = s.textColor;
+      document.getElementById('ctrl-tstroke').value = s.textStroke;
+      document.getElementById('ctrl-fsize').value = s.fontSize;
+      document.getElementById('val-fsize').textContent = s.fontSize;
+      document.getElementById('ctrl-arch').value = s.textArch;
+      document.getElementById('val-arch').textContent = s.textArch;
+      document.getElementById('ctrl-jitter').checked = s.textJitter;
+      document.getElementById('ctrl-motion').value = s.motion;
+      document.getElementById('ctrl-particle').value = s.particle;
+      const slantEl = document.getElementById('ctrl-slant');
+      if (slantEl) slantEl.value = s.textSlant || 0;
+      const slantVal = document.getElementById('val-slant');
+      if (slantVal) slantVal.textContent = (s.textSlant || 0) + '°';
+      document.querySelectorAll('[data-ts]').forEach(b => b.classList.toggle('active', b.dataset.ts === (s.textStyle || 'outline')));
+
+      if (slot.rawImageUrl) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          state.loadedRawImg = img;
+          state.processedCharCanvas = processCharacterCanvas(img, s);
+        };
+        img.src = slot.rawImageUrl;
+      } else {
+        state.loadedRawImg = null;
+        state.processedCharCanvas = null;
+      }
+    }
+
+    function onSettingChange(key, val) {
+      const slot = state.slots[state.selectedSlotIndex];
+      slot.settings[key] = val;
+      if (key === 'erode') document.getElementById('val-erode').textContent = val + 'px';
+      if (key === 'strokeWidth') document.getElementById('val-stroke').textContent = val + 'px';
+      if (key === 'fontSize') document.getElementById('val-fsize').textContent = val;
+      if (key === 'textArch') document.getElementById('val-arch').textContent = val;
+      if (key === 'textSlant') document.getElementById('val-slant').textContent = val + '°';
+
+      if (['removeBg', 'erode', 'strokeWidth', 'remaster'].includes(key) && state.loadedRawImg) {
+        state.processedCharCanvas = processCharacterCanvas(state.loadedRawImg, slot.settings);
+      }
+    }
+
+    // 핵심: 스마트 누끼 + Erode + 리마스터링 톤 통일 + 다크모드 외곽선
+    function processCharacterCanvas(img, s) {
+      const size = 480;
+      const c = document.createElement('canvas');
+      c.width = size; c.height = size;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+
+      const pad = 34;
+      const avail = size - pad * 2;
+      const scale = Math.min(avail / img.width, avail / img.height);
+      const dw = img.width * scale, dh = img.height * scale;
+      const dx = (size - dw) / 2, dy = (size - dh) / 2;
+
+      // 작화 통일 필터
+      if (s.remaster === 'ink') ctx.filter = 'contrast(1.22) saturate(1.1)';
+      else if (s.remaster === 'pastel') ctx.filter = 'brightness(1.08) contrast(0.9) saturate(0.88)';
+      else if (s.remaster === 'flat') ctx.filter = 'saturate(1.3) contrast(1.08)';
+      else ctx.filter = 'none';
+
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.filter = 'none';
+
+      if (s.removeBg) {
+        const imgData = ctx.getImageData(0, 0, size, size);
+        const d = imgData.data;
+        const si = ((Math.floor(dy) + 2) * size + (Math.floor(dx) + 2)) * 4;
+        const bgR = d[si], bgG = d[si + 1], bgB = d[si + 2], bgA = d[si + 3];
+        if (bgA > 10) {
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] === 0) continue;
+            if (Math.abs(d[i] - bgR) + Math.abs(d[i + 1] - bgG) + Math.abs(d[i + 2] - bgB) < 78) {
+              d[i + 3] = 0;
+            }
+          }
+        }
+        // Erode (경계 잔상 깎기)
+        if (s.erode > 0) {
+          const alpha = new Uint8ClampedArray(size * size);
+          for (let p = 0; p < size * size; p++) alpha[p] = d[p * 4 + 3];
+          const r = s.erode;
+          for (let y = r; y < size - r; y++) {
+            for (let x = r; x < size - r; x++) {
+              const p = y * size + x;
+              if (alpha[p] === 0) continue;
+              if (alpha[(y - r) * size + x] === 0 || alpha[(y + r) * size + x] === 0 || alpha[y * size + (x - r)] === 0 || alpha[y * size + (x + r)] === 0) {
+                d[p * 4 + 3] = 0;
+              }
+            }
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      }
+
+      // 종이/크레파스 질감 오버레이
+      if (s.remaster === 'paper') {
+        const imgData = ctx.getImageData(0, 0, size, size);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i + 3] > 20) {
+            const n = (Math.random() - 0.5) * 22;
+            d[i] = Math.min(255, Math.max(0, d[i] + n));
+            d[i + 1] = Math.min(255, Math.max(0, d[i + 1] + n));
+            d[i + 2] = Math.min(255, Math.max(0, d[i + 2] + n));
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      }
+
+      // 다크모드용 흰색 외곽선
+      if (s.strokeWidth > 0) {
+        const out = document.createElement('canvas');
+        out.width = size; out.height = size;
+        const octx = out.getContext('2d');
+
+        const mask = document.createElement('canvas');
+        mask.width = size; mask.height = size;
+        const mctx = mask.getContext('2d');
+        mctx.drawImage(c, 0, 0);
+        mctx.globalCompositeOperation = 'source-in';
+        mctx.fillStyle = '#ffffff';
+        mctx.fillRect(0, 0, size, size);
+
+        const steps = 16;
+        for (let i = 0; i < steps; i++) {
+          const a = (i / steps) * Math.PI * 2;
+          octx.drawImage(mask, Math.cos(a) * s.strokeWidth, Math.sin(a) * s.strokeWidth);
+        }
+        octx.drawImage(c, 0, 0);
+        return out;
+      }
+      return c;
+    }
+
+    // 최종 600x600 합성 렌더러
+    function drawStudioFrame(ctx, w, h, charCanvas, s, t = 0) {
+      ctx.clearRect(0, 0, w, h);
+
+      let tx = 0, ty = 0, rot = 0, sc = 1;
+      if (s.motion === 'bounce') ty = -Math.abs(Math.sin(t * 5)) * 28;
+      else if (s.motion === 'shake') tx = Math.sin(t * 32) * 10;
+      else if (s.motion === 'nod') { rot = Math.sin(t * 6) * 0.08; ty = Math.sin(t * 6) * 10; }
+      else if (s.motion === 'pulse') sc = 1 + Math.sin(t * 6) * 0.07;
+      else if (s.motion === 'wiggle') rot = Math.sin(t * 8) * 0.12;
+
+      // 1. 집중선 파츠가 있으면 배경에 먼저 그리기
+      (s.parts || []).filter(p => p.type === 'SPEEDLINES').forEach(() => {
+        ctx.save();
+        ctx.translate(w / 2, h / 2);
+        ctx.strokeStyle = 'rgba(30,41,59,0.22)'; ctx.lineWidth = 4;
+        for (let i = 0; i < 24; i++) {
+          const a = (i / 24) * Math.PI * 2;
+          ctx.beginPath(); ctx.moveTo(Math.cos(a) * 190, Math.sin(a) * 190); ctx.lineTo(Math.cos(a) * 320, Math.sin(a) * 320); ctx.stroke();
+        }
+        ctx.restore();
+      });
+
+      // 2. 캐릭터
+      if (charCanvas) {
+        ctx.save();
+        ctx.translate(w / 2 + tx, h / 2 - 22 + ty);
+        ctx.rotate(rot); ctx.scale(sc, sc);
+        ctx.drawImage(charCanvas, -charCanvas.width / 2, -charCanvas.height / 2);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 20px "Noto Sans KR"'; ctx.textAlign = 'center';
+        ctx.fillText('상단의 [📦 빠른 체험] 또는 [AI 생성]을 눌러주세요', w / 2, h / 2);
+      }
+
+      // 3. 만화 효과 파츠 (말풍선 & 이모지)
+      (s.parts || []).forEach((p, idx) => {
+        if (p.type === 'SPEEDLINES') return;
+        ctx.save();
+        const bob = t > 0 ? Math.sin(t * 4 + idx) * 5 : 0;
+        if (p.type === 'BUBBLE') {
+          ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.roundRect(p.x - 85, p.y - 38 + bob, 170, 72, 24); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(p.x - 15, p.y + 34 + bob); ctx.lineTo(p.x - 28, p.y + 52 + bob); ctx.lineTo(p.x + 8, p.y + 34 + bob); ctx.fill(); ctx.stroke();
+        } else {
+          ctx.font = `${p.size || 68}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(p.type, p.x, p.y + bob);
+        }
+        ctx.restore();
+      });
+
+      // 4. 파티클 오버레이
+      if (s.particle && s.particle !== 'none' && t > 0) {
+        const em = s.particle === 'heart' ? '💖' : (s.particle === 'sparkle' ? '✨' : '💧');
+        for (let i = 0; i < 4; i++) {
+          const prog = (t * 0.55 + i * 0.25) % 1;
+          const px = 110 + i * 125 + Math.sin(t * 3 + i) * 16;
+          const py = s.particle === 'sweat' ? (80 + prog * 400) : (500 - prog * 400);
+          ctx.save();
+          ctx.globalAlpha = 1 - Math.abs(prog - 0.5) * 2;
+          ctx.font = '36px sans-serif'; ctx.fillText(em, px, py);
+          ctx.restore();
+        }
+      }
+
+      // 5. 타이포그래피 — 프리셋(외곽선·스티커·그림자·배지·네온·아치) + 기울기 + 지터
+      if (s.text && s.text.trim()) {
+        ctx.save();
+        ctx.font = `700 ${s.fontSize}px "${s.font}", sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.translate(s.textX, s.textY);
+        ctx.rotate(((s.textSlant || 0) * Math.PI) / 180);
+
+        const chars = Array.from(s.text);
+        const widths = chars.map(ch => ctx.measureText(ch).width);
+        const totalW = widths.reduce((a, b) => a + b, 0);
+        const style = s.textStyle || 'outline';
+
+        if (style === 'badge') {
+          const padX = Math.max(18, s.fontSize * 0.34);
+          const padY = Math.max(10, s.fontSize * 0.2);
+          ctx.save();
+          ctx.shadowColor = 'rgba(15,23,42,0.3)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 6;
+          ctx.fillStyle = s.textColor;
+          ctx.strokeStyle = s.textStroke;
+          ctx.lineWidth = Math.max(4, s.fontSize * 0.1);
+          ctx.beginPath();
+          ctx.roundRect(-totalW / 2 - padX, -s.fontSize * 0.7 - padY, totalW + padX * 2, s.fontSize * 1.4 + padY * 2, 24);
+          ctx.fill(); ctx.stroke();
+          ctx.restore();
+        }
+
+        let curX = -totalW / 2;
+        chars.forEach((ch, idx) => {
+          const cx = curX + widths[idx] / 2;
+          const norm = totalW > 0 ? (cx / (totalW / 2)) : 0;
+          const archY = (s.textArch || 0) * (norm * norm) * 4.5;
+          const jitterRot = s.textJitter ? (((idx % 2 === 0 ? 1 : -1)) * 0.055) : 0;
+          const archRot = (s.textArch || 0) * norm * 0.04;
+
+          ctx.save();
+          ctx.translate(cx, archY);
+          ctx.rotate(jitterRot + archRot);
+
+          if (style === 'badge') {
+            ctx.fillStyle = s.textStroke;
+            ctx.fillText(ch, 0, 0);
+          } else if (style === 'shadow') {
+            ctx.save();
+            ctx.shadowColor = 'rgba(15,23,42,0.55)';
+            ctx.shadowBlur = Math.max(2, s.fontSize * 0.08);
+            ctx.shadowOffsetX = Math.max(2, s.fontSize * 0.06);
+            ctx.shadowOffsetY = Math.max(3, s.fontSize * 0.1);
+            ctx.lineWidth = Math.max(8, s.fontSize * 0.2);
+            ctx.strokeStyle = s.textStroke;
+            ctx.strokeText(ch, 0, 0);
+            ctx.restore();
+            ctx.fillStyle = s.textColor;
+            ctx.fillText(ch, 0, 0);
+          } else if (style === 'sticker') {
+            ctx.lineWidth = Math.max(14, s.fontSize * 0.44);
+            ctx.strokeStyle = s.textStroke;
+            ctx.strokeText(ch, 0, 0);
+            ctx.lineWidth = Math.max(4, s.fontSize * 0.1);
+            ctx.strokeStyle = s.textColor;
+            ctx.globalAlpha = 0.28;
+            ctx.strokeText(ch, 0, 0);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = s.textColor;
+            ctx.fillText(ch, 0, 0);
+          } else if (style === 'neon') {
+            ctx.save();
+            ctx.shadowColor = s.textStroke;
+            ctx.shadowBlur = Math.max(12, s.fontSize * 0.38);
+            ctx.fillStyle = s.textColor;
+            ctx.fillText(ch, 0, 0);
+            ctx.fillText(ch, 0, 0);
+            ctx.restore();
+            ctx.lineWidth = Math.max(2, s.fontSize * 0.05);
+            ctx.strokeStyle = s.textStroke;
+            ctx.strokeText(ch, 0, 0);
+          } else {
+            ctx.lineWidth = Math.max(10, s.fontSize * 0.24);
+            ctx.strokeStyle = s.textStroke;
+            ctx.strokeText(ch, 0, 0);
+            ctx.fillStyle = s.textColor;
+            ctx.fillText(ch, 0, 0);
+          }
+
+          ctx.restore();
+          curX += widths[idx];
+        });
+        ctx.restore();
+      }
+    }
+
+    function startStudioAnimationLoop() {
+      const canvas = document.getElementById('studio-main-canvas');
+      const ctx = canvas.getContext('2d');
+      let last = performance.now();
+      function tick(now) {
+        const dt = (now - last) / 1000;
+        last = now;
+        if (state.motionPlaying) state.animTime += dt;
+        const slot = state.slots[state.selectedSlotIndex];
+        if (slot) {
+          drawStudioFrame(ctx, 600, 600, state.processedCharCanvas, slot.settings, state.motionPlaying ? state.animTime : 0);
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function renderSlotSnapshot(slot) {
+      return new Promise(resolve => {
+        const c = document.createElement('canvas');
+        c.width = 600; c.height = 600;
+        const ctx = c.getContext('2d');
+        if (!slot.rawImageUrl) {
+          drawStudioFrame(ctx, 600, 600, null, slot.settings, 0);
+          resolve(c.toDataURL('image/png')); return;
+        }
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const proc = processCharacterCanvas(img, slot.settings);
+          drawStudioFrame(ctx, 600, 600, proc, slot.settings, 0);
+          resolve(c.toDataURL('image/png'));
+        };
+        img.src = slot.rawImageUrl;
+      });
+    }
+
+    async function commitCurrentSlot() {
+      const slot = state.slots[state.selectedSlotIndex];
+      slot.finalImageUrl = await renderSlotSnapshot(slot);
+      renderStudioThumbGrid();
+      renderPlanSlotsGrid();
+      renderBoard();
+      updateDoneCount();
+      showToast(`#${slot.id} 슬롯이 확정 저장되었습니다!`, 'success');
+    }
+
+    async function applyRemasterToAll24() {
+      const cur = state.slots[state.selectedSlotIndex].settings;
+      showToast('24종 전체에 현재 보정·외곽선을 일괄 적용 중...', 'info');
+      for (let i = 0; i < 24; i++) {
+        const s = state.slots[i].settings;
+        s.removeBg = cur.removeBg;
+        s.erode = cur.erode;
+        s.strokeWidth = cur.strokeWidth;
+        s.remaster = cur.remaster;
+        if (state.slots[i].rawImageUrl) {
+          state.slots[i].finalImageUrl = await renderSlotSnapshot(state.slots[i]);
+        }
+      }
+      renderStudioThumbGrid();
+      renderPlanSlotsGrid();
+      renderBoard();
+      updateDoneCount();
+      showToast('24종 전체에 보정·외곽선이 일괄 적용되었습니다!', 'success');
+    }
+
+    function addComicPart(type) {
+      const slot = state.slots[state.selectedSlotIndex];
+      slot.settings.parts.push({ type, x: 460 - (slot.settings.parts.length % 3) * 40, y: 150 + (slot.settings.parts.length % 2) * 50, size: 68 });
+      showToast('파츠가 추가되었습니다. 캔버스에서 드래그해 이동하세요!', 'info');
+    }
+
+    function clearSlotParts() {
+      state.slots[state.selectedSlotIndex].settings.parts = [];
+    }
+
+    function setStudioBg(mode) {
+      state.studioBg = mode;
+      const frame = document.getElementById('studio-canvas-frame');
+      frame.classList.remove('bg-checker-light', 'bg-checker-dark');
+      frame.classList.add(`bg-${mode}`);
+      document.getElementById('sbg-light').className = mode === 'checker-light' ? "px-2 py-1 rounded-lg bg-white text-slate-800 shadow-xs" : "px-2 py-1 rounded-lg text-slate-500";
+      document.getElementById('sbg-dark').className = mode === 'checker-dark' ? "px-2 py-1 rounded-lg bg-slate-800 text-white shadow-xs" : "px-2 py-1 rounded-lg text-slate-500";
+    }
+
+    function adjustCanvasZoom(delta) {
+      state.canvasZoom = Math.min(1.6, Math.max(0.6, state.canvasZoom + delta));
+      document.getElementById('canvas-zoom-wrap').style.transform = `scale(${state.canvasZoom})`;
+    }
+    function resetCanvasZoom() {
+      state.canvasZoom = 1;
+      document.getElementById('canvas-zoom-wrap').style.transform = 'scale(1)';
+    }
+
+    // -------------------------------------------------------------------------
+    // 부분 수정 브러시 (Inpainting) & 캔버스 드래그 인터랙션
+    // -------------------------------------------------------------------------
+    function toggleInpaintMode() {
+      state.inpaintMode = !state.inpaintMode;
+      const btn = document.getElementById('btn-inpaint-toggle');
+      const maskCanvas = document.getElementById('studio-mask-canvas');
+      if (state.inpaintMode) {
+        btn.className = "px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition";
+        btn.textContent = "🖌️ 부분 수정 브러시 ON (칠하기)";
+        maskCanvas.classList.remove('pointer-events-none');
+        maskCanvas.style.cursor = 'crosshair';
+      } else {
+        btn.className = "px-3 py-1.5 rounded-lg bg-white border border-rose-300 text-rose-700 text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition";
+        btn.textContent = "🖌️ 부분 수정 브러시 OFF";
+        maskCanvas.classList.add('pointer-events-none');
+        maskCanvas.style.cursor = 'default';
+      }
+    }
+
+    function clearInpaintMask() {
+      const mc = document.getElementById('studio-mask-canvas');
+      mc.getContext('2d').clearRect(0, 0, mc.width, mc.height);
+    }
+
+    async function runInpaintRegenerate() {
+      const prompt = document.getElementById('inpaint-prompt').value.trim();
+      if (!prompt) { showToast('수정할 내용을 입력해 주세요. (예: 눈을 더 크게)', 'warn'); return; }
+      const slot = state.slots[state.selectedSlotIndex];
+      const loader = document.getElementById('studio-loader');
+      document.getElementById('studio-loader-msg').textContent = '선택 영역 부분 수정(AI) 중...';
+      loader.classList.remove('hidden');
+
+      try {
+        // 메인 캔버스 + 빨간 마스크 합성본을 서버로 보내 그 영역만 다시 그린다
+        const merge = document.createElement('canvas');
+        merge.width = 600; merge.height = 600;
+        const mctx = merge.getContext('2d');
+        mctx.fillStyle = '#ffffff'; mctx.fillRect(0, 0, 600, 600);
+        mctx.drawImage(document.getElementById('studio-main-canvas'), 0, 0);
+        mctx.drawImage(document.getElementById('studio-mask-canvas'), 0, 0);
+        const b64 = merge.toDataURL('image/png').split(',')[1];
+
+        const json = await callContentAI({
+          action: 'emoticon_image',
+          mode: 'edit',
+          prompt: prompt,
+          aspectRatio: '1:1',
+          image: { data: b64, mimeType: 'image/png' }
+        }, { timeout: 110000 });
+        if (!json.ok) throw new Error(apiMessage(json, '부분 수정에 실패했습니다.'));
+
+        slot.rawImageUrl = `data:${json.mime || 'image/png'};base64,${json.data}`;
+        slot.finalImageUrl = await renderSlotSnapshot(slot);
+        clearInpaintMask();
+        loadSelectedSlotToStudio();
+        renderStudioThumbGrid();
+        renderPlanSlotsGrid();
+        renderBoard();
+        showToast('선택 영역 부분 수정이 완료되었습니다!', 'success');
+      } catch (err) {
+        console.error(err);
+        clearInpaintMask();
+        showToast('부분 수정 실패 — ' + (err.message || '서버 오류'), 'error');
+      } finally {
+        loader.classList.add('hidden');
+      }
+    }
+
+    function setupCanvasInteractions() {
+      const mainC = document.getElementById('studio-main-canvas');
+      const maskC = document.getElementById('studio-mask-canvas');
+      const mctx = maskC.getContext('2d');
+
+      function getPos(canvas, e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: (clientX - rect.left) * (canvas.width / rect.width),
+          y: (clientY - rect.top) * (canvas.height / rect.height)
+        };
+      }
+
+      // 마스크 브러시 페인팅
+      const startMask = e => {
+        if (!state.inpaintMode) return;
+        e.preventDefault();
+        state.isDrawingMask = true;
+        const pos = getPos(maskC, e);
+        const r = Number(document.getElementById('inpaint-brush-size').value) / 2;
+        mctx.fillStyle = 'rgba(244, 63, 94, 0.45)';
+        mctx.beginPath(); mctx.arc(pos.x, pos.y, r, 0, Math.PI * 2); mctx.fill();
+      };
+      const moveMask = e => {
+        if (!state.inpaintMode || !state.isDrawingMask) return;
+        e.preventDefault();
+        const pos = getPos(maskC, e);
+        const r = Number(document.getElementById('inpaint-brush-size').value) / 2;
+        mctx.fillStyle = 'rgba(244, 63, 94, 0.45)';
+        mctx.beginPath(); mctx.arc(pos.x, pos.y, r, 0, Math.PI * 2); mctx.fill();
+      };
+      const endMask = () => { state.isDrawingMask = false; };
+
+      maskC.addEventListener('mousedown', startMask);
+      maskC.addEventListener('mousemove', moveMask);
+      window.addEventListener('mouseup', endMask);
+      maskC.addEventListener('touchstart', startMask, { passive: false });
+      maskC.addEventListener('touchmove', moveMask, { passive: false });
+      window.addEventListener('touchend', endMask);
+
+      // 텍스트 & 만화 파츠 드래그 이동
+      const startDrag = e => {
+        if (state.inpaintMode) return;
+        const pos = getPos(mainC, e);
+        const s = state.slots[state.selectedSlotIndex].settings;
+        // 파츠 히트 테스트
+        for (let i = s.parts.length - 1; i >= 0; i--) {
+          const p = s.parts[i];
+          if (p.type === 'SPEEDLINES') continue;
+          if (Math.hypot(pos.x - p.x, pos.y - p.y) < 55) {
+            state.dragTarget = { type: 'part', index: i, ox: pos.x - p.x, oy: pos.y - p.y };
+            return;
+          }
+        }
+        // 텍스트 히트 테스트
+        if (s.text && Math.abs(pos.x - s.textX) < 180 && Math.abs(pos.y - s.textY) < 55) {
+          state.dragTarget = { type: 'text', ox: pos.x - s.textX, oy: pos.y - s.textY };
+        }
+      };
+      const moveDrag = e => {
+        if (!state.dragTarget) return;
+        e.preventDefault();
+        const pos = getPos(mainC, e);
+        const s = state.slots[state.selectedSlotIndex].settings;
+        if (state.dragTarget.type === 'text') {
+          s.textX = pos.x - state.dragTarget.ox;
+          s.textY = pos.y - state.dragTarget.oy;
+        } else if (state.dragTarget.type === 'part') {
+          const p = s.parts[state.dragTarget.index];
+          p.x = pos.x - state.dragTarget.ox;
+          p.y = pos.y - state.dragTarget.oy;
+        }
+      };
+      const endDrag = () => { state.dragTarget = null; };
+
+      mainC.addEventListener('mousedown', startDrag);
+      mainC.addEventListener('mousemove', moveDrag);
+      window.addEventListener('mouseup', endDrag);
+      mainC.addEventListener('touchstart', startDrag, { passive: false });
+      mainC.addEventListener('touchmove', moveDrag, { passive: false });
+      window.addEventListener('touchend', endDrag);
+    }
+
+    // =========================================================================
+    // 8. 탭 3: 실전 검수, 콤보 이어보내기 & 1080x1080 홍보용 카드뉴스
+    // =========================================================================
+    function setChatTheme(theme) {
+      state.chatTheme = theme;
+      const g = document.getElementById('review-grid-wrap');
+      const m = document.getElementById('mobile-chat-frame');
+      const bl = document.getElementById('chat-theme-light');
+      const bd = document.getElementById('chat-theme-dark');
+      if (theme === 'dark') {
+        g.classList.replace('bg-[#bacee0]', 'bg-[#18181b]');
+        m.classList.replace('bg-[#bacee0]', 'bg-[#18181b]');
+        bd.className = "px-3 py-1.5 rounded-lg bg-slate-900 text-white shadow-xs";
+        bl.className = "px-3 py-1.5 rounded-lg text-slate-500";
+      } else {
+        g.classList.replace('bg-[#18181b]', 'bg-[#bacee0]');
+        m.classList.replace('bg-[#18181b]', 'bg-[#bacee0]');
+        bl.className = "px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs";
+        bd.className = "px-3 py-1.5 rounded-lg text-slate-500";
+      }
+    }
+
+    function renderReview24Grid() {
+      const grid = document.getElementById('review-24-grid');
+      grid.innerHTML = state.slots.map((slot, idx) => `
+        <button onclick="sendSingleToChat(${idx})" class="aspect-square rounded-xl p-1 hover:bg-white/20 transition relative flex items-center justify-center">
+          ${slot.finalImageUrl ? `<img src="${slot.finalImageUrl}" class="w-full h-full object-contain"/>` : `<span class="text-[10px] font-bold text-slate-500">#${slot.id}</span>`}
+          ${slot.combo ? `<span class="absolute top-0.5 right-0.5 px-1 rounded bg-fuchsia-600 text-white text-[8px] font-black">${slot.combo}</span>` : ''}
+        </button>
+      `).join('');
+    }
+
+    function sendSingleToChat(idx) {
+      const slot = state.slots[idx];
+      if (!slot.finalImageUrl) { showToast('먼저 상단의 [빠른 체험] 또는 슬롯 생성을 진행해 주세요.', 'warn'); return; }
+      const box = document.getElementById('chat-messages');
+      const row = document.createElement('div');
+      row.className = "flex justify-end";
+      row.innerHTML = `<img src="${slot.finalImageUrl}" class="w-28 h-28 object-contain"/>`;
+      box.appendChild(row);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendComboPair(idxA, idxB) {
+      sendSingleToChat(idxA);
+      setTimeout(() => sendSingleToChat(idxB), 450);
+    }
+
+    function clearChatMessages() {
+      document.getElementById('chat-messages').innerHTML = `
+        <div class="flex items-start gap-2">
+          <div class="w-7 h-7 rounded-full bg-indigo-500 text-white flex items-center justify-center font-black text-[11px] shrink-0">친구</div>
+          <div class="bg-white text-slate-800 px-3 py-2 rounded-2xl rounded-tl-none shadow-xs leading-relaxed">
+            우와 새로 만든 캐릭터 보내봐! 콤보 이모티콘도 궁금해 😆
+          </div>
+        </div>`;
+    }
+
+    function renderPromoCard() {
+      const c = document.getElementById('promo-canvas');
+      const ctx = c.getContext('2d');
+      const theme = document.getElementById('promo-theme').value;
+      const title = document.getElementById('promo-title').value;
+      const worldview = document.getElementById('dna-worldview').value;
+
+      // 배경
+      if (theme === 'dark') {
+        ctx.fillStyle = '#18181b'; ctx.fillRect(0, 0, 1080, 1080);
+      } else if (theme === 'grid') {
+        ctx.fillStyle = '#fffbeb'; ctx.fillRect(0, 0, 1080, 1080);
+        ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2;
+        for (let i = 0; i < 1080; i += 45) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 1080); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(1080, i); ctx.stroke();
+        }
+      } else {
+        ctx.fillStyle = '#fff1f2'; ctx.fillRect(0, 0, 1080, 1080);
+      }
+
+      // 타이틀 & 소개
+      ctx.fillStyle = theme === 'dark' ? '#ffffff' : '#1e293b';
+      ctx.font = '700 54px "Jua", sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(title, 540, 96);
+
+      ctx.fillStyle = theme === 'dark' ? '#a1a1aa' : '#64748b';
+      ctx.font = '600 24px "Noto Sans KR", sans-serif';
+      ctx.fillText(worldview, 540, 142);
+
+      // 4x6 = 24종 미니 그리드
+      const cols = 6, rows = 4;
+      const padX = 48, startY = 185;
+      const cellW = (1080 - padX * 2) / cols;
+      const cellH = 205;
+
+      for (let i = 0; i < 24; i++) {
+        const col = i % cols, row = Math.floor(i / cols);
+        const x = padX + col * cellW, y = startY + row * cellH;
+        ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.82)';
+        ctx.beginPath(); ctx.roundRect(x + 6, y + 6, cellW - 12, cellH - 12, 20); ctx.fill();
+
+        const slot = state.slots[i];
+        if (slot && slot.finalImageUrl) {
+          const img = new Image();
+          img.onload = () => ctx.drawImage(img, x + 12, y + 12, cellW - 24, cellW - 24);
+          img.src = slot.finalImageUrl;
+        }
+      }
+    }
+
+    function downloadPromoCardPNG() {
+      const a = document.createElement('a');
+      a.download = 'emoticon_promo_1080.png';
+      a.href = document.getElementById('promo-canvas').toDataURL('image/png');
+      a.click();
+      showToast('홍보용 카드뉴스(1080×1080)가 다운로드되었습니다!', 'success');
+    }
+
+    // =========================================================================
+    // 9. 탭 4: 멀티 플랫폼 ZIP 패키징 & 다국어 SEO AI
+    // =========================================================================
+    function resizeToBlob(dataUrl, w, h, pad = 10, extraDieCut = false) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const ctx = c.getContext('2d');
+          const aw = w - pad * 2, ah = h - pad * 2;
+          const sc = Math.min(aw / img.width, ah / img.height);
+          const dw = img.width * sc, dh = img.height * sc;
+          const dx = (w - dw) / 2, dy = (h - dh) / 2;
+
+          if (extraDieCut) {
+            // 굿즈 칼선용 두꺼운 흰색 여백 추가
+            const mask = document.createElement('canvas');
+            mask.width = w; mask.height = h;
+            const mctx = mask.getContext('2d');
+            mctx.drawImage(img, dx, dy, dw, dh);
+            mctx.globalCompositeOperation = 'source-in';
+            mctx.fillStyle = '#ffffff';
+            mctx.fillRect(0, 0, w, h);
+            for (let i = 0; i < 16; i++) {
+              const a = (i / 16) * Math.PI * 2;
+              ctx.drawImage(mask, Math.cos(a) * 26, Math.sin(a) * 26);
+            }
+          }
+          ctx.drawImage(img, dx, dy, dw, dh);
+          c.toBlob(b => resolve(b), 'image/png');
+        };
+        img.src = dataUrl;
+      });
+    }
+
+    async function exportZIP(platform) {
+      const done = state.slots.filter(s => !!s.finalImageUrl);
+      if (done.length === 0) {
+        showToast('완성된 이모티콘이 없습니다. 상단의 [📦 빠른 체험]을 먼저 눌러보세요!', 'warn');
+        return;
+      }
+      showToast(`${platform.toUpperCase()} 규격 ZIP 생성 중...`, 'info');
+      const zip = new JSZip();
+      const specs = {
+        ogq: { w: 740, h: 640, main: [240, 240], tab: [96, 74], pad: 10, dieCut: false },
+        line: { w: 370, h: 320, main: [240, 240], tab: [96, 74], pad: 8, dieCut: false },
+        kakao: { w: 360, h: 360, main: null, tab: null, pad: 8, dieCut: false },
+        sns: { w: 512, h: 512, main: null, tab: null, pad: 10, dieCut: false },
+        goods: { w: 1000, h: 1000, main: null, tab: null, pad: 70, dieCut: true }
+      };
+      const sp = specs[platform];
+      for (let i = 0; i < done.length; i++) {
+        const blob = await resizeToBlob(done[i].finalImageUrl, sp.w, sp.h, sp.pad, sp.dieCut);
+        zip.file(`${String(i + 1).padStart(2, '0')}.png`, blob);
+      }
+      if (sp.main) zip.file('main.png', await resizeToBlob(done[0].finalImageUrl, sp.main[0], sp.main[1], 6));
+      if (sp.tab) zip.file('tab.png', await resizeToBlob(done[0].finalImageUrl, sp.tab[0], sp.tab[1], 4));
+
+      const out = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(out);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${document.getElementById('dna-char-name').value || 'emoticon'}_${platform}_pack.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`${platform.toUpperCase()} ZIP(${done.length}종) 다운로드 완료!`, 'success');
+    }
+
+    async function generateMultilingualSEO() {
+      const btn = document.getElementById('btn-gen-seo');
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin-fast"></div> 생성 중...`;
+      try {
+        const name = document.getElementById('dna-char-name').value;
+        const wv = document.getElementById('dna-worldview').value;
+        const json = await callContentAI({
+          action: 'emoticon_plan',
+          mode: 'seo',
+          charName: name,
+          concept: wv,
+          preset: state.presetKey || 'basic'
+        }, { timeout: 60000 });
+        if (!json.ok) throw new Error(apiMessage(json, 'SEO 생성에 실패했습니다.'));
+        const d = json.data || {};
+        if (d.kr) document.getElementById('seo-kr').value = d.kr;
+        if (d.en) document.getElementById('seo-en').value = d.en;
+        if (d.jp) document.getElementById('seo-jp').value = d.jp;
+        if (d.tw) document.getElementById('seo-tw').value = d.tw;
+        showToast('다국어 SEO 정보가 생성되었습니다!', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('AI SEO 실패 — ' + (err.message || '서버 오류'), 'warn');
+      } finally {
+        btn.disabled = false; btn.innerHTML = orig; lucide.createIcons();
+      }
+    }
+
+    // =========================================================================
+    // 9-b. 24종 기획 프리셋 (사물·블로거·직장인·가족)
+    // =========================================================================
+    const PLAN_PRESETS = {
+      basic: { label: '📦 사물 의인화 기본', items: DEFAULT_BOX_PLAN },
+      blogger: { label: '📝 블로거 리뷰용', items: [
+        { text: '내돈내산', desc: '영수증 들고 당당하게', prompt: 'proudly holding a receipt, confident honest purchase' },
+        { text: '협찬아님', desc: '손사래 치며 아니라고', prompt: 'waving both hands in denial, playful' },
+        { text: '안녕하세요', desc: '두 손 모아 반갑게 인사', prompt: 'polite warm greeting bow' },
+        { text: '강추합니다', desc: '별 다섯 개 흔들며 추천', prompt: 'holding five tiny stars, strong recommendation' },
+        { text: '재구매각', desc: '지갑 열어 카드 꺼내기', prompt: 'opening wallet taking out a card' },
+        { text: '가성비 최고', desc: '동전이 반짝이며 엄지척', prompt: 'coins sparkling around, thumbs up' },
+        { text: '이건 사야해', desc: '손가락으로 가리키며 확신', prompt: 'pointing forward with certainty' },
+        { text: '솔직후기', desc: '수첩 들고 진지한 표정', prompt: 'holding a small notepad, serious honest face' },
+        { text: '생각보다 별로', desc: '미간 찡그린 실망', prompt: 'slightly disappointed frowning face' },
+        { text: '환불각', desc: '영수증 접으며 한숨', prompt: 'folding a receipt with a sigh' },
+        { text: '고마워요', desc: '하트 안고 감사 인사', prompt: 'hugging a heart, grateful bow' },
+        { text: '대박 발견', desc: '반짝이는 눈으로 감탄', prompt: 'sparkling eyes, amazed discovery' },
+        { text: '언박싱', desc: '상자 열며 두근두근', prompt: 'opening a box with excitement' },
+        { text: '오늘의 지출', desc: '계산기 두드리기', prompt: 'tapping a calculator, worried face' },
+        { text: '뭐 사지', desc: '턱 괴고 고민', prompt: 'chin on hand, thinking what to buy' },
+        { text: '돈 아깝다', desc: '지갑 닫으며 아쉬움', prompt: 'closing wallet, regretful expression' },
+        { text: '안사면 후회', desc: '손 내밀어 붙잡기', prompt: 'reaching out to stop someone, urgent' },
+        { text: '품절 임박', desc: '놀란 눈으로 외치기', prompt: 'shocked eyes, shouting urgent' },
+        { text: '배송 기다림', desc: '현관에서 기다리기', prompt: 'waiting at the door, expectant' },
+        { text: '리뷰 쓰는 중', desc: '노트북 두드리며 집중', prompt: 'typing on a laptop, focused' },
+        { text: '이거 봐봐', desc: '옆을 가리키며 부르기', prompt: 'calling and pointing to the side' },
+        { text: '완전 좋아', desc: '두 손 번쩍 감탄', prompt: 'both hands up, amazed joy' },
+        { text: '하나만 더?', desc: '지갑 살짝 열기', prompt: 'peeking into a wallet, tempting' },
+        { text: '결제 완료', desc: '카드 긁고 엄지척', prompt: 'swiping a card, thumbs up' }
+      ]},
+      worker: { label: '📈 주식·직장인용', items: [
+        { text: '출근합니다', desc: '무거운 발걸음', prompt: 'dragging feet to work, tired' },
+        { text: '커피 한잔', desc: '커피 들고 눈 반쯤 감김', prompt: 'holding coffee, half-closed eyes' },
+        { text: '퇴근완료', desc: '신나게 달려 나가기', prompt: 'running out joyfully, leaving work' },
+        { text: '오케이', desc: 'OK 사인', prompt: 'making an OK sign, confident smile' },
+        { text: '확인했습니다', desc: '손 들어 대답', prompt: 'raising hand in acknowledgment' },
+        { text: '바로 처리', desc: '서류 들고 달리기', prompt: 'dashing quickly holding papers' },
+        { text: '칼퇴가즈아', desc: '시계 보며 두근두근', prompt: 'checking the clock excitedly' },
+        { text: '감사합니다', desc: '정중히 고개 숙여 인사', prompt: 'polite deep bow' },
+        { text: '죄송합니다', desc: '손 모아 사과', prompt: 'apologetic hands together' },
+        { text: '숨좀쉬자', desc: '책상에 엎드려 지침', prompt: 'collapsed on a desk exhausted' },
+        { text: '수고했어요', desc: '어깨 토닥이기', prompt: 'patting shoulder warmly' },
+        { text: 'ㅋㅋㅋㅋ', desc: '배 잡고 웃기', prompt: 'laughing hard holding belly' },
+        { text: '헐', desc: '눈 휘둥그레', prompt: 'shocked wide eyes' },
+        { text: '미쳤다', desc: '머리 감싸며 감탄', prompt: 'holding head in disbelief' },
+        { text: '굿', desc: '엄지척', prompt: 'thumbs up, bright smile' },
+        { text: '스트레스', desc: '머리 쥐어뜯기', prompt: 'pulling hair in stress' },
+        { text: '회의지옥', desc: '넋 나간 표정', prompt: 'blank exhausted face' },
+        { text: '야근중', desc: '달 옆에서 노트북', prompt: 'working late at a laptop under a moon' },
+        { text: '점심뭐먹', desc: '메뉴판 고민', prompt: 'staring at a menu, thinking' },
+        { text: '졸음', desc: '고개 꾸벅꾸벅', prompt: 'nodding off, sleepy' },
+        { text: '상한가?', desc: '차트 가리키며 놀람', prompt: 'pointing at an upward chart, shocked' },
+        { text: '떡상!', desc: '로켓 타고 상승', prompt: 'riding a rocket upward, cheering' },
+        { text: '손절할까', desc: '식은땀 흘리며 고민', prompt: 'sweating, hesitant worried face' },
+        { text: '존버', desc: '팔짱 끼고 버티기', prompt: 'arms crossed, holding on firmly' }
+      ]},
+      couple: { label: '💗 가족·연인용', items: [
+        { text: '안녕', desc: '손 흔들기', prompt: 'waving hello cheerfully' },
+        { text: '사랑해', desc: '하트 만들기', prompt: 'making a heart shape with hands' },
+        { text: '보고싶어', desc: '두 팔 벌려 안기', prompt: 'arms open wide for a hug' },
+        { text: '고마워', desc: '볼에 뽀뽀', prompt: 'giving a cheek kiss' },
+        { text: '미안해', desc: '눈물 글썽', prompt: 'teary apologetic eyes' },
+        { text: '힘내', desc: '주먹 쥐고 응원', prompt: 'cheering with a clenched fist' },
+        { text: '잘했어', desc: '머리 쓰다듬기', prompt: 'gently patting head' },
+        { text: '축하해', desc: '꽃가루와 박수', prompt: 'confetti and clapping celebration' },
+        { text: '좋아', desc: '엄지척 미소', prompt: 'thumbs up with a soft smile' },
+        { text: '배고파', desc: '배 움켜쥐기', prompt: 'holding stomach hungry' },
+        { text: '밥먹자', desc: '수저 들기', prompt: 'holding a spoon ready to eat' },
+        { text: '잘자', desc: '이불 덮고 하품', prompt: 'under a blanket yawning' },
+        { text: '일어나', desc: '이불 걷어내기', prompt: 'pulling off a blanket, morning' },
+        { text: '다녀왔어', desc: '문 열고 인사', prompt: 'entering through a door, greeting' },
+        { text: '조심해', desc: '손 내밀어 걱정', prompt: 'reaching out worried, careful' },
+        { text: '괜찮아', desc: '토닥이며 위로', prompt: 'comforting pat, warm smile' },
+        { text: '심심해', desc: '바닥에 뒹굴기', prompt: 'rolling on the floor bored' },
+        { text: '놀자', desc: '손잡고 끌기', prompt: 'pulling a hand to play' },
+        { text: '웃겨', desc: '배 잡고 웃기', prompt: 'laughing hard holding belly' },
+        { text: '졸려', desc: '하품 눈물', prompt: 'yawning with tears, sleepy' },
+        { text: '뭐해?', desc: '옆에서 기웃', prompt: 'peeking from the side, curious' },
+        { text: '나도!', desc: '달려와 껴안기', prompt: 'running in for a hug' },
+        { text: '사줘!', desc: '애교 부리며 매달리기', prompt: 'clinging cutely, begging' },
+        { text: '땡큐!', desc: '환하게 웃으며 하트', prompt: 'bright smile with floating hearts' }
+      ]}
+    };
+
+    function updatePresetUI() {
+      document.querySelectorAll('[data-preset]').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.preset === (state.presetKey || 'basic'));
+      });
+      const ts = state.slots[state.selectedSlotIndex] ? (state.slots[state.selectedSlotIndex].settings.textStyle || 'outline') : 'outline';
+      document.querySelectorAll('[data-ts]').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.ts === ts);
+      });
+    }
+
+    function applyPreset(key, opts) {
+      opts = opts || {};
+      const p = PLAN_PRESETS[key];
+      if (!p) return;
+      state.presetKey = key;
+      p.items.forEach(function (it, i) {
+        const slot = state.slots[i];
+        if (!slot) return;
+        slot.desc = it.desc;
+        slot.prompt = it.prompt;
+        slot.settings.text = it.text;
+      });
+      renderPlanSlotsGrid();
+      renderStudioThumbGrid();
+      loadSelectedSlotToStudio();
+      renderReview24Grid();
+      renderBoard();
+      updatePresetUI();
+      updateDoneCount();
+      if (!opts.silent) showToast(p.label + ' 24종 기획을 적용했습니다. [캐릭터 시트 생성] → [24종 일괄 AI 생성] 순서로 진행하세요.', 'success');
+    }
+
+    function applyTextStyle(key) {
+      const slot = state.slots[state.selectedSlotIndex];
+      if (!slot) return;
+      slot.settings.textStyle = key;
+      if (key === 'curve') {
+        slot.settings.textArch = slot.settings.textArch || 8;
+        const arch = document.getElementById('ctrl-arch');
+        if (arch) arch.value = slot.settings.textArch;
+        const av = document.getElementById('val-arch');
+        if (av) av.textContent = slot.settings.textArch;
+      }
+      updatePresetUI();
+      const names = { outline: '기본 외곽선', sticker: '두꺼운 스티커', shadow: '그림자', badge: '배지 라벨', neon: '네온 글로우', curve: '아치 곡선' };
+      showToast('폰트 효과: ' + (names[key] || key) + ' — 캔버스에 바로 반영됩니다. [현재 컷 확정 저장]으로 저장하세요.', 'info');
+    }
+
+    // =========================================================================
+    // 9-c. 라이트·다크 일괄 검수판
+    // =========================================================================
+    let boardBg = 'both';
+
+    function setBoardBg(mode) {
+      boardBg = mode;
+      document.querySelectorAll('[data-board-bg]').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.boardBg === mode);
+        b.classList.toggle('text-slate-500', b.dataset.boardBg !== mode);
+      });
+      renderBoard();
+    }
+
+    function boardCell(slot, idx) {
+      const label = slot.combo ? ('🔗 ' + slot.combo) : ('#' + String(slot.id).padStart(2, '0'));
+      const img = slot.finalImageUrl
+        ? '<img src="' + slot.finalImageUrl + '" alt="' + esc(slot.settings.text) + '" loading="lazy" />'
+        : '<div class="w-full h-full flex flex-col items-center justify-center gap-0.5 text-slate-500">' +
+          '<span class="text-[11px] font-black">' + label + '</span><span class="text-[9px]">미생성</span></div>';
+      return '<button type="button" onclick="openInStudio(' + idx + ')" class="board-cell aspect-square w-full" title="' + esc(slot.settings.text) + '">' +
+        img + '<span class="absolute top-1 left-1 px-1 rounded bg-black/55 text-white text-[9px] font-black">' + label + '</span></button>';
+    }
+
+    function renderBoard() {
+      const dark = document.getElementById('board-dark-grid');
+      const light = document.getElementById('board-light-grid');
+      if (!dark || !light) return;
+      const cells = state.slots.map(boardCell).join('');
+      dark.innerHTML = cells;
+      light.innerHTML = cells;
+
+      const small = document.getElementById('board-small') && document.getElementById('board-small').checked;
+      const glow = document.getElementById('board-outline') && document.getElementById('board-outline').checked;
+      [dark, light].forEach(function (g) {
+        g.classList.toggle('small-preview', !!small);
+        g.querySelectorAll('img').forEach(function (im) {
+          im.style.filter = (glow && g === dark) ? 'drop-shadow(0 0 2px rgba(255,255,255,.85))' : 'none';
+        });
+      });
+
+      const dw = document.getElementById('board-dark-wrap');
+      const lw = document.getElementById('board-light-wrap');
+      if (dw) dw.style.display = boardBg === 'light' ? 'none' : 'block';
+      if (lw) lw.style.display = boardBg === 'dark' ? 'none' : 'block';
+      const host = dark.parentElement;
+      if (host) host.className = 'grid grid-cols-1 ' + (boardBg === 'both' ? 'xl:grid-cols-2' : '') + ' gap-4';
+
+      const n = state.slots.filter(function (s) { return !!s.finalImageUrl; }).length;
+      const bc = document.getElementById('board-count');
+      if (bc) bc.textContent = '완성 ' + n + ' / 24';
+    }
+
+    // =========================================================================
+    // 9-d. 밝게 / 어둡게 테마
+    // =========================================================================
+    function applyTheme(theme) {
+      const dark = theme === 'dark';
+      document.documentElement.classList.toggle('theme-dark', dark);
+      try { localStorage.setItem('emoticon_theme', dark ? 'dark' : 'light'); } catch (e) {}
+      const meta = document.getElementById('metaThemeColor');
+      if (meta) meta.setAttribute('content', dark ? '#0b1020' : '#4f46e5');
+      const btn = document.getElementById('btn-theme');
+      if (btn) {
+        btn.innerHTML = dark ? '☀️<span class="hidden xl:inline">밝게</span>' : '🌙<span class="hidden xl:inline">어둡게</span>';
+      }
+    }
+
+    function toggleTheme() {
+      applyTheme(document.documentElement.classList.contains('theme-dark') ? 'light' : 'dark');
+    }
+
+    // =========================================================================
+    // 9-e. 움직이는 스티커 내보내기 (GIF · APNG · WebM)
+    // =========================================================================
+    function loadScriptOnce(src) {
+      return new Promise(function (resolve, reject) {
+        const found = document.querySelector('script[data-src="' + src + '"]');
+        if (found) return resolve();
+        const s = document.createElement('script');
+        s.src = src; s.async = true; s.setAttribute('data-src', src);
+        s.onload = function () { resolve(); };
+        s.onerror = function () { reject(new Error('인코더 로드 실패 — 네트워크를 확인해 주세요.')); };
+        document.head.appendChild(s);
+      });
+    }
+
+    function downloadBlob(blob, name) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    }
+
+    async function renderMotionFrames(size, fps, seconds, bg) {
+      const slot = state.slots[state.selectedSlotIndex];
+      if (!slot || !slot.rawImageUrl) throw new Error('먼저 이모티콘 이미지를 생성해 주세요.');
+      const proc = await new Promise(function (resolve) {
+        const img = new Image();
+        img.onload = function () { resolve(processCharacterCanvas(img, slot.settings)); };
+        img.onerror = function () { resolve(null); };
+        img.src = slot.rawImageUrl;
+      });
+      const big = document.createElement('canvas'); big.width = 600; big.height = 600;
+      const bctx = big.getContext('2d');
+      const out = document.createElement('canvas'); out.width = size; out.height = size;
+      const octx = out.getContext('2d', { willReadFrequently: true });
+      const total = Math.max(8, Math.round(fps * seconds));
+      const frames = [];
+      for (let i = 0; i < total; i++) {
+        const t = seconds * (i / total);
+        bctx.clearRect(0, 0, 600, 600);
+        if (bg) { bctx.fillStyle = bg; bctx.fillRect(0, 0, 600, 600); }
+        drawStudioFrame(bctx, 600, 600, proc, slot.settings, t);
+        octx.clearRect(0, 0, size, size);
+        if (bg) { octx.fillStyle = bg; octx.fillRect(0, 0, size, size); }
+        octx.drawImage(big, 0, 0, size, size);
+        frames.push(octx.getImageData(0, 0, size, size));
+        if (i % 4 === 0) await new Promise(function (r) { setTimeout(r, 0); });
+      }
+      return { frames: frames, slot: slot };
+    }
+
+    async function framesToGIF(frames, size, delayMs) {
+      const mod = await import('https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js');
+      const gif = mod.GIFEncoder();
+      for (let i = 0; i < frames.length; i++) {
+        const rgba = new Uint8Array(frames[i].data.buffer.slice(0));
+        const palette = mod.quantize(rgba, 256, { format: 'rgb565' });
+        const index = mod.applyPalette(rgba, palette, 'rgb565');
+        gif.writeFrame(index, size, size, { palette: palette, delay: delayMs });
+      }
+      gif.finish();
+      return new Blob([gif.bytes()], { type: 'image/gif' });
+    }
+
+    async function framesToAPNG(frames, size, delayMs) {
+      if (!window.UPNG) await loadScriptOnce('https://cdn.jsdelivr.net/npm/upng-js@2.1.0/UPNG.min.js');
+      if (!window.UPNG) throw new Error('APNG 인코더를 불러오지 못했습니다.');
+      const buffers = frames.map(function (f) { return f.data.buffer; });
+      const delays = frames.map(function () { return Math.max(10, Math.round(delayMs)); });
+      const png = UPNG.encode(buffers, size, size, 0, delays);
+      return new Blob([png], { type: 'image/png' });
+    }
+
+    async function framesToWebM(frames, size, fps) {
+      if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
+        throw new Error('이 브라우저는 WebM 녹화를 지원하지 않습니다. GIF 또는 APNG를 써 주세요.');
+      }
+      const c = document.createElement('canvas'); c.width = size; c.height = size;
+      const ctx = c.getContext('2d');
+      const stream = c.captureStream(fps);
+      const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4000000 });
+      const chunks = [];
+      rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+      const done = new Promise(function (resolve) { rec.onstop = function () { resolve(new Blob(chunks, { type: 'video/webm' })); }; });
+      rec.start();
+      const frameMs = 1000 / fps;
+      const t0 = performance.now();
+      for (let i = 0; i < frames.length; i++) {
+        ctx.putImageData(frames[i], 0, 0);
+        const wait = t0 + (i + 1) * frameMs - performance.now();
+        if (wait > 0) await new Promise(function (r) { setTimeout(r, wait); });
+      }
+      await new Promise(function (r) { setTimeout(r, 220); });
+      rec.stop();
+      return await done;
+    }
+
+    async function exportAnimated(format) {
+      const slot = state.slots[state.selectedSlotIndex];
+      if (!slot || !slot.rawImageUrl) { showToast('먼저 이모티콘 이미지를 생성해 주세요.', 'warn'); return; }
+      const motion = slot.settings.motion;
+      if (!motion || motion === 'none') { showToast('먼저 [원클릭 모션]을 고르세요. 모션 없음은 정지 이미지입니다.', 'warn'); return; }
+      const size = Number(document.getElementById('anim-size').value || 360);
+      const speed = Number(document.getElementById('anim-speed').value || 1);
+      const fps = 20;
+      const seconds = 1.25 / speed;
+      const btns = document.querySelectorAll('#anim-format-grid button');
+      btns.forEach(function (b) { b.disabled = true; });
+      showToast(format.toUpperCase() + ' 만드는 중... 잠시 기다려 주세요.', 'info');
+      try {
+        const bg = (format === 'gif') ? '#ffffff' : null;
+        const built = await renderMotionFrames(size, fps, seconds, bg);
+        const delayMs = Math.round(1000 / fps);
+        let blob = null;
+        if (format === 'gif') blob = await framesToGIF(built.frames, size, delayMs);
+        else if (format === 'apng') blob = await framesToAPNG(built.frames, size, delayMs);
+        else blob = await framesToWebM(built.frames, size, fps);
+        const name = (document.getElementById('dna-char-name').value || 'emoticon') + '_' + String(slot.id).padStart(2, '0') + '_motion.' + format;
+        downloadBlob(blob, name);
+        showToast(format.toUpperCase() + ' 저장 완료 (' + size + 'px · ' + built.frames.length + '프레임)', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast(format.toUpperCase() + ' 저장 실패 — ' + (err.message || '브라우저 오류'), 'error');
+      } finally {
+        btns.forEach(function (b) { b.disabled = false; });
+      }
+    }
+
+    // =========================================================================
+    // 9-f. PWA 설치 · 서비스워커
+    // =========================================================================
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+    });
+
+    async function promptInstall() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        let choice = {};
+        try { choice = await deferredInstallPrompt.userChoice; } catch (e) {}
+        deferredInstallPrompt = null;
+        showToast(choice && choice.outcome === 'accepted' ? '홈 화면에 앱을 설치하고 있습니다.' : '설치를 취소했습니다. 브라우저 메뉴에서 다시 시도할 수 있어요.', 'info');
+        return;
+      }
+      showToast('브라우저 메뉴(⋮) → "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요.', 'info');
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
+      });
+    }
+
+    // =========================================================================
+    // 10. 초기화
+    // =========================================================================
+    window.onload = () => {
+      initSlots();
+      state.presetKey = state.presetKey || 'basic';
+      renderPlanSlotsGrid();
+      renderStudioThumbGrid();
+      setupCanvasInteractions();
+      startStudioAnimationLoop();
+      applyTheme(document.documentElement.classList.contains('theme-dark') ? 'dark' : 'light');
+      updatePresetUI();
+      updateReferenceStatus();
+      updateDoneCount();
+      renderBoard();
+      lucide.createIcons();
+
+      // 사진 드래그 앤 드롭 지원
+      const dz = document.getElementById('photo-dropzone');
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('border-indigo-500', 'bg-indigo-100/60'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('border-indigo-500', 'bg-indigo-100/60'));
+      dz.addEventListener('drop', e => {
+        e.preventDefault(); dz.classList.remove('border-indigo-500', 'bg-indigo-100/60');
+        const f = e.dataTransfer.files?.[0];
+        if (f && f.type.startsWith('image/')) {
+          const r = new FileReader();
+          r.onload = ev => { setUploadedPhotoPreview(ev.target.result); updateReferenceStatus(); showToast('사진이 업로드되었습니다!', 'success'); };
+          r.readAsDataURL(f);
+        }
+      });
+
+      initServerStatus();
+    };
+
+  </script>
+</body>
+</html>
