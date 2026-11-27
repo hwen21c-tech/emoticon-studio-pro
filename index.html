@@ -8,13 +8,13 @@
   <meta id="metaThemeColor" name="theme-color" content="#4f46e5" />
 
   <!-- ===== 홈 화면 독립 앱 설치(PWA) ===== -->
-  <link rel="manifest" href="/manifest.json" />
+  <link rel="manifest" href="manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="이모티콘" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/icons/emoticon-apple-180.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/emoticon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/emoticon-apple-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/emoticon-192.png" />
 
   <script>
     /* 밝게/어둡게 — 첫 페인트 전에 적용해 번쩍임을 막는다 */
@@ -1324,7 +1324,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     // 1. 전역 상태 & 상수
     // =========================================================================
     // 서버 프록시 — 관제탑 Vercel(content-ai)이 Gemini 키를 대신 쓴다. 브라우저에 키를 두지 않는다.
-    const API_BASE = 'https://stock-dashboard-live-6frm.vercel.app';
+    const API_BASE = 'https://stock-dashboard-live-bice.vercel.app';
     const CONTENT_AI = API_BASE + '/api/content-ai';
     const TEXT_MODEL = "gemini-3-flash-preview";   // 화면 표기용(실제 모델은 서버가 고른다)
     const IMAGE_MODEL = "gemini-2.5-flash-image";  // 화면 표기용(서버가 3.1→2.5 순으로 시도)
@@ -3444,7 +3444,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js').catch(function () {});
+        navigator.serviceWorker.register('sw.js').catch(function () {});
       });
     }
 

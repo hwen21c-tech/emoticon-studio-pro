@@ -1,12 +1,12 @@
 {
-  "id": "/",
+  "id": "./",
   "name": "이모티콘 스튜디오 AI Pro",
   "short_name": "이모티콘",
   "description": "사물 사진 한 장으로 24종 이모티콘을 만드는 AI 스튜디오 — 기준 캐릭터 고정, 그림 속 글씨 금지, 라이트·다크 일괄 검수, OGQ·LINE ZIP, 움직이는 스티커(GIF·APNG·WebM) 내보내기 (가족 PIN 0623)",
   "lang": "ko",
   "dir": "ltr",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
@@ -14,8 +14,8 @@
   "theme_color": "#4f46e5",
   "categories": ["graphics", "productivity", "utilities"],
   "icons": [
-    { "src": "/icons/emoticon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/emoticon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/emoticon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "./icons/emoticon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/emoticon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/emoticon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

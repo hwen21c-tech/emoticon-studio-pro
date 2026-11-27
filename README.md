@@ -1,7 +1,7 @@
 # 🎨 이모티콘 스튜디오 AI Pro (emoticon-studio-pro)
 
 사물 사진 한 장으로 **상업용 24종 이모티콘**을 만드는 독립 웹앱입니다.
-관제탑(`stock-dashboard-live-6frm.vercel.app`)의 `/api/content-ai` 서버 함수를 크로스 오리진으로 사용하므로 **Gemini 키를 브라우저에 두지 않습니다.**
+관제탑(`stock-dashboard-live-bice.vercel.app`)의 `/api/content-ai` 서버 함수를 크로스 오리진으로 사용하므로 **Gemini 키를 브라우저에 두지 않습니다.**
 
 - 라이브: https://emoticon-studio-pro.vercel.app
 - 가족 PIN: `0623` (첫 진입 시 1회, 이 기기에서 유지 선택 가능)
