@@ -7,7 +7,7 @@
    · 오프라인 셸: 화면 + 매니페스트 + 아이콘만 담는다.
    ============================================================ */
 const PREFIX = 'emoticon-studio-pro-';
-const VERSION = PREFIX + 'v2';
+const VERSION = PREFIX + 'v3';
 const BASE = new URL('./', self.location).pathname;   // 예: /shorts-studio-pro/
 const SHELL = [
   BASE,
@@ -66,14 +66,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 나머지 정적 파일: 캐시 우선(stale-while-revalidate)
+  // 나머지 정적 파일: 네트워크 우선 → 실패(오프라인) 시 캐시
+  //   캐시 우선이면 index.html만 새것이고 app.js는 옛것이 섞여 화면 수치와 프리셋 개수가 어긋나는 사고가 난다.
   event.respondWith((async () => {
     const cache = await caches.open(VERSION);
-    const cached = await cache.match(req);
-    const network = fetch(req).then((res) => {
-      if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
-      return res;
-    }).catch(() => null);
-    return cached || (await network) || Response.error();
+    try {
+      const fresh = await fetch(req);
+      if (fresh && fresh.ok) cache.put(req, fresh.clone()).catch(() => {});
+      return fresh;
+    } catch (_) {
+      const cached = await cache.match(req);
+      if (cached) return cached;
+      return Response.error();
+    }
   })());
 });
