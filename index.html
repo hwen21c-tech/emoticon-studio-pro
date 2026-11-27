@@ -307,7 +307,7 @@
   <!-- ========================================================= -->
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
     <div class="max-w-[1640px] mx-auto px-3 sm:px-5">
-      <div class="flex items-center justify-between h-16 gap-2">
+      <div class="flex flex-wrap items-center justify-between min-h-16 py-2 gap-2">
         <!-- 로고 -->
         <div class="flex items-center gap-2.5 shrink-0 cursor-pointer" onclick="switchTab('tab-photo')">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500 flex items-center justify-center text-white shadow-md">
@@ -323,7 +323,7 @@
         </div>
 
         <!-- 빠른 체험 + 프로젝트 저장/불러오기 + 퀵 가이드 -->
-        <div class="flex items-center gap-1.5 sm:gap-2">
+        <div class="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           <button onclick="runQuickBoxDemo()" class="px-2.5 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-extrabold shadow-sm flex items-center gap-1.5 transition">
             <span>📦</span>
             <span class="hidden sm:inline">빠른 체험: 택배 상자 캐릭터 24종 채우기</span>
@@ -625,7 +625,7 @@
                 <button onclick="clearInpaintMask()" class="px-2 py-1 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-600">마스크 지우기</button>
               </div>
             </div>
-            <div class="flex gap-2">
+            <div class="flex flex-col sm:flex-row gap-2">
               <input id="inpaint-prompt" type="text" placeholder="예: 눈을 더 크고 반짝이게 수정, 손 모양을 하트로 변경" class="flex-1 px-2.5 py-1.5 rounded-lg border border-rose-200 bg-white text-xs" />
               <button onclick="runInpaintRegenerate()" class="shrink-0 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold transition">
                 ✨ 선택 영역만 AI 다시 그리기
