@@ -650,6 +650,9 @@
             <button onclick="loadDemoSheet()" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold transition">
               🧪 데모 시트로 먼저 확인 (AI 한도 없이)
             </button>
+            <button id="btn-sheet-undo" onclick="undoSplitGrid()" class="hidden w-full py-1.5 px-3 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-600 text-[11px] font-bold transition">
+              ↩ 9등분 되돌리기 (분할 전 상태로)
+            </button>
             <p class="text-[11px] leading-relaxed text-slate-500">
               AI는 <b>같은 캐릭터 9포즈</b>를 한 장에 그립니다(그림 속 글씨 금지·흰 배경 강제).
               업로드한 시트도 같은 방식으로 잘라 <b>누끼·외곽선 설정을 그대로 적용</b>해 채웁니다.
@@ -1725,6 +1728,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       // 🧩 3×3 그리드 시트 (한 장 → 9등분)
       sheetPreviewUrl: null,
       sheetBusy: false,
+      sheetUndo: null,
       // ✍️ 손글씨 패드
       calliMode: false,
       activeCalliStroke: null,
@@ -4045,10 +4049,12 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         noteEngineResult(json);
         setSheetPreview('data:' + (json.mime || 'image/png') + ';base64,' + json.data, 'AI 시트 · ' + usedEngineLabel(json) + ' (' + ref.note + ' 기준)');
         if (json.usedEngine === 'pollinations') {
-          showToast('무료 엔진으로 시트를 그렸습니다 — 3×3 칸 배치가 어긋날 수 있어요. 9등분 후 칸을 확인하세요.', 'warn');
-        } else {
-          showToast('3×3 시트가 만들어졌습니다 — 바로 9등분합니다.', 'success');
+          // 무료 엔진은 칸 배치가 자주 어긋난다 → 자동으로 슬롯을 덮어쓰지 않고 미리보기만 보여준다.
+          showToast('무료 엔진으로 그렸습니다 — 칸 배치를 먼저 확인하고 [9등분]을 눌러 주세요. (엉뚱하면 [다시]·[업로드])', 'warn');
+          state.sheetBusy = false;
+          return;
         }
+        showToast('3×3 시트가 만들어졌습니다 — 바로 9등분합니다.', 'success');
         state.sheetBusy = false;   // 생성 락을 풀고 분할로 넘긴다(분할 함수도 같은 락을 본다)
         await splitGridSheet();
       } catch (err) {
@@ -4105,6 +4111,14 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         const inset = sheetInset();
         const cw = img.width / 3, ch = img.height / 3;
         const targets = state.slots.slice(start, Math.min(24, start + 9));
+        const filled = targets.filter(function (s) { return !!s.finalImageUrl; }).length;
+        if (filled > 0) {
+          const okOverwrite = window.confirm('#' + String(start + 1).padStart(2, '0') + '부터 ' + targets.length + '칸 중 ' + filled + '칸이 이미 채워져 있습니다. 이 컷들을 새 시트로 덮어쓸까요?');
+          if (!okOverwrite) { return; }
+        }
+        state.sheetUndo = targets.map(function (s) { return { slot: s, raw: s.rawImageUrl, final: s.finalImageUrl }; });
+        const undoBtn = document.getElementById('btn-sheet-undo');
+        if (undoBtn) undoBtn.classList.remove('hidden');
         let count = 0;
         for (let i = 0; i < targets.length; i++) {
           const row = Math.floor(i / 3), col = i % 3;
@@ -4133,6 +4147,18 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         if (btn) btn.disabled = !state.sheetPreviewUrl;
         if (loader) loader.classList.add('hidden');
       }
+    }
+
+    function undoSplitGrid() {
+      const snap = state.sheetUndo;
+      if (!snap || !snap.length) { showToast('되돌릴 분할 기록이 없습니다.', 'warn'); return; }
+      snap.forEach(function (o) { o.slot.rawImageUrl = o.raw; o.slot.finalImageUrl = o.final; });
+      state.sheetUndo = null;
+      const btn = document.getElementById('btn-sheet-undo');
+      if (btn) btn.classList.add('hidden');
+      renderPlanSlotsGrid(); renderStudioThumbGrid(); renderReview24Grid(); renderBoard(); updateDoneCount();
+      loadSelectedSlotToStudio();
+      showToast('9등분 전 상태로 되돌렸습니다.', 'info');
     }
 
     // --------------------------------------------- 24장 크기·기준선 통일
