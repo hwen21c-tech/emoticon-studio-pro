@@ -653,7 +653,7 @@
             <p class="text-[11px] leading-relaxed text-slate-500">
               AI는 <b>같은 캐릭터 9포즈</b>를 한 장에 그립니다(그림 속 글씨 금지·흰 배경 강제).
               업로드한 시트도 같은 방식으로 잘라 <b>누끼·외곽선 설정을 그대로 적용</b>해 채웁니다.
-              한도(429)면 자동으로 무료 엔진으로 넘어갑니다.
+              한도(429)면 무료 엔진으로 넘어가는데, <b>무료 엔진은 3×3 칸 배치가 자주 어긋납니다</b> — 그럴 때는 [업로드]나 [데모 시트]로 확인하세요.
             </p>
           </div>
         </div>
@@ -4044,7 +4044,11 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         lastApiReason = '';
         noteEngineResult(json);
         setSheetPreview('data:' + (json.mime || 'image/png') + ';base64,' + json.data, 'AI 시트 · ' + usedEngineLabel(json) + ' (' + ref.note + ' 기준)');
-        showToast('3×3 시트가 만들어졌습니다 — 바로 9등분합니다.', 'success');
+        if (json.usedEngine === 'pollinations') {
+          showToast('무료 엔진으로 시트를 그렸습니다 — 3×3 칸 배치가 어긋날 수 있어요. 9등분 후 칸을 확인하세요.', 'warn');
+        } else {
+          showToast('3×3 시트가 만들어졌습니다 — 바로 9등분합니다.', 'success');
+        }
         await splitGridSheet();
       } catch (err) {
         console.error(err);
