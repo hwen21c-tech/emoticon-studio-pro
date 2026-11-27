@@ -4407,7 +4407,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           metrics.push({ slot: slot, bbox: bbox, soft: soft, opaque: opaque });
         } catch (e) { slot.qaStatus = 'warn'; slot.qaIssues.push('이미지 분석 실패'); }
       }
-      const hs = metrics.map(function (m) { return m.bbox ? m.bbox.h : 0; }).filter(function (h) { return h > 0; }).sort(function (a, b) { return a - b; });
+      // 시각적 크기 = 바운딩 박스 기하평균(넓은 콤보 컷을 '작다'고 오판하지 않게)
+      const hs = metrics.map(function (m) { return m.bbox ? Math.sqrt(m.bbox.w * m.bbox.h) : 0; }).filter(function (h) { return h > 0; }).sort(function (a, b) { return a - b; });
       const med = hs.length ? hs[Math.floor(hs.length / 2)] : 0;
       let pass = 0, warn = 0, fail = 0;
       for (let i = 0; i < state.slots.length; i++) {
@@ -4416,7 +4417,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         if (slot.qaStatus === 'pass') {
           const m = metrics.filter(function (x) { return x.slot === slot; })[0];
           if (m && m.bbox) {
-            if (med && Math.abs(m.bbox.h - med) > med * 0.14) slot.qaIssues.push('크기·기준선 편차');
+            const vis = Math.sqrt(m.bbox.w * m.bbox.h);
+            if (med && Math.abs(vis - med) > med * 0.16) slot.qaIssues.push('크기·기준선 편차');
             if (m.opaque > 0 && m.soft / m.opaque > 0.03) slot.qaIssues.push('누끼 잔상 의심');
             if ((slot.settings.strokeWidth || 0) < 4) slot.qaIssues.push('다크모드 흰 외곽선 부족');
           }
