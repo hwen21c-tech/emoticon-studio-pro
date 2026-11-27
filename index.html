@@ -8,7 +8,7 @@
   <meta id="metaThemeColor" name="theme-color" content="#4f46e5" />
 
   <!-- ===== 홈 화면 독립 앱 설치(PWA) ===== -->
-  <link rel="manifest" href="manifest.json" />
+  <link rel="manifest" href="manifest.json?v=20261127v4" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -588,6 +588,77 @@
     <!-- TAB 2: 🎨 스튜디오 & 부분 수정 (Inpainting, Remaster, Motion) -->
     <!-- ======================================================= -->
     <section id="tab-studio" class="tab-panel">
+
+      <!-- 🧩 3×3 그리드 시트 (9컷 한 번에) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+        <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
+          <div class="min-w-0">
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="grid-3x3" class="w-5 h-5 text-indigo-600"></i> 3×3 그리드 시트 — 9컷 한 번에
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">한 장의 시트에 9개 표정을 그려 <b>자동 9등분</b>하면 AI 호출이 1/9로 줄고, 같은 시트라 인상도 훨씬 잘 붙습니다.</p>
+          </div>
+          <span class="px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-[11px] font-extrabold shrink-0">AI 호출 1/9 절감</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mt-3">
+          <div class="md:col-span-4">
+            <div class="relative aspect-square w-full max-w-[260px] mx-auto rounded-2xl border border-slate-200 overflow-hidden bg-checker-light">
+              <img id="sheet-preview" alt="3×3 시트 미리보기" class="hidden w-full h-full object-contain" />
+              <div id="sheet-empty" class="absolute inset-0 flex flex-col items-center justify-center text-center px-3">
+                <span class="text-2xl">🧩</span>
+                <p class="text-[11px] font-bold text-slate-500 mt-1">시트를 생성하거나 이미지를 올리면<br/>여기에 9칸 미리보기가 나옵니다.</p>
+              </div>
+              <div class="pointer-events-none absolute inset-0" style="background-image:linear-gradient(to right, rgba(79,70,229,.32) 1px, transparent 1px),linear-gradient(to bottom, rgba(79,70,229,.32) 1px, transparent 1px);background-size:33.3333% 33.3333%;"></div>
+            </div>
+            <p id="sheet-status" class="text-[11px] font-bold text-slate-500 text-center mt-1.5">아직 시트가 없습니다.</p>
+          </div>
+
+          <div class="md:col-span-8 space-y-2.5">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">채울 슬롯</label>
+                <select id="sheet-start" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white">
+                  <option value="0">#01 ~ #09</option>
+                  <option value="9">#10 ~ #18</option>
+                  <option value="18">#19 ~ #24 (6컷)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">칸 여백 다듬기</label>
+                <select id="sheet-inset" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white">
+                  <option value="0">자르기 없음</option>
+                  <option value="0.03" selected>3% 안쪽으로</option>
+                  <option value="0.06">6% 안쪽 (칸 테두리 제거)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button id="btn-sheet-ai" onclick="generateGridSheetAI()" class="py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition">
+                <i data-lucide="sparkles" class="w-4 h-4"></i> AI로 3×3 시트 생성
+              </button>
+              <button onclick="document.getElementById('sheet-file').click()" class="py-2.5 px-3 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-extrabold flex items-center justify-center gap-1.5 transition">
+                🖼️ 시트 이미지 업로드
+              </button>
+              <input id="sheet-file" type="file" accept="image/*" class="hidden" onchange="handleGridSheetUpload(event)" />
+            </div>
+
+            <button id="btn-sheet-split" onclick="splitGridSheet()" disabled class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition">
+              ✂️ 9등분해서 슬롯에 채우기
+            </button>
+            <button onclick="loadDemoSheet()" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold transition">
+              🧪 데모 시트로 먼저 확인 (AI 한도 없이)
+            </button>
+            <p class="text-[11px] leading-relaxed text-slate-500">
+              AI는 <b>같은 캐릭터 9포즈</b>를 한 장에 그립니다(그림 속 글씨 금지·흰 배경 강제).
+              업로드한 시트도 같은 방식으로 잘라 <b>누끼·외곽선 설정을 그대로 적용</b>해 채웁니다.
+              한도(429)면 자동으로 무료 엔진으로 넘어갑니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
         <!-- 좌측 (3 cols): 24종 콤팩트 그리드 -->
@@ -682,6 +753,27 @@
               </label>
             </div>
 
+            <!-- 정밀 누끼 (외곽 추적 Flood-Fill) -->
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-1.5">
+                <span class="text-[11px] font-extrabold text-slate-700">누끼 방식</span>
+                <label class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 cursor-pointer">
+                  <input id="ctrl-despeckle" type="checkbox" checked onchange="onSettingChange('despeckle', this.checked)" class="accent-emerald-600" /> 잔여물·잔상 제거
+                </label>
+              </div>
+              <select id="ctrl-cutout" onchange="onSettingChange('cutoutMode', this.value)" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white">
+                <option value="flood">외곽 추적 Flood-Fill (흰몸통 보호)</option>
+                <option value="color">단순 색상 치환 (예전 방식)</option>
+              </select>
+              <div>
+                <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                  <span>배경 허용 오차</span><span id="val-tol">96</span>
+                </div>
+                <input id="ctrl-tol" type="range" min="30" max="150" step="2" value="96" oninput="onSettingChange('cutoutTol', Number(this.value))" class="w-full accent-indigo-600" />
+              </div>
+              <p class="text-[10.5px] leading-relaxed text-slate-500">테두리에서 안쪽으로 번지는 배경만 지워 <b>흰색 몸통·둥근 눈</b>이 뚫리지 않습니다. 잔상이 남으면 오차를 올리세요.</p>
+            </div>
+
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
@@ -771,6 +863,29 @@
                 <span id="val-slant">0°</span>
               </div>
             </div>
+
+            <!-- ✍️ 손글씨(캘리그라피) 패드 & 글씨 레이어 -->
+            <div class="p-2.5 rounded-xl bg-fuchsia-50/60 border border-fuchsia-200 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-1.5">
+                <button onclick="toggleCalliPad()" id="btn-calli-toggle" class="px-3 py-1.5 rounded-lg bg-white border border-fuchsia-300 text-fuchsia-700 text-[11px] font-extrabold shadow-xs transition">✍️ 손글씨 패드 OFF</button>
+                <div class="flex gap-1">
+                  <button onclick="undoCalliStroke()" class="px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold">↩ 한 획</button>
+                  <button onclick="clearCalliStrokes()" class="px-2 py-1 rounded-lg bg-white border border-rose-200 text-rose-600 text-[11px] font-bold">지우기</button>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+                <span class="shrink-0">획 색</span>
+                <input id="ctrl-cali-color" type="color" value="#1e293b" class="w-6 h-6 rounded cursor-pointer" />
+                <span class="shrink-0">굵기</span>
+                <input id="ctrl-cali-width" type="range" min="4" max="26" value="10" class="flex-1 accent-fuchsia-500" />
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                <span class="shrink-0">글씨 레이어</span>
+                <button onclick="setTextLayer('front')" data-layer="front" class="preset-btn active px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">앞</button>
+                <button onclick="setTextLayer('back')" data-layer="back" class="preset-btn px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">뒤 (입체 겹침)</button>
+              </div>
+              <p class="text-[10.5px] text-slate-500 leading-relaxed">패드를 켜고 캔버스에 직접 쓰면 글씨가 그림처럼 저장됩니다. '뒤'로 두면 캐릭터 팔·머리가 글씨 앞으로 나와 입체감이 생깁니다.</p>
+            </div>
           </div>
 
           <!-- 3. 만화 효과 파츠 -->
@@ -790,6 +905,19 @@
               <button onclick="addComicPart('❗')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-base transition">❗</button>
               <button onclick="addComicPart('SPEEDLINES')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-xs font-extrabold text-slate-700 transition">💥 집중선</button>
               <button onclick="addComicPart('BUBBLE')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-xs font-extrabold text-slate-700 transition">💬 말풍선</button>
+            </div>
+            <div class="text-[11px] font-bold text-slate-600 pt-0.5">표정·소품 벡터 파츠 (API 호출 없이 스왑)</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="addVectorPart('eye_sparkle')" class="px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-extrabold text-amber-800">✨ 눈</button>
+              <button onclick="addVectorPart('eye_x')" class="px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-extrabold text-amber-800">✖ 눈</button>
+              <button onclick="addVectorPart('eye_heart')" class="px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-extrabold text-amber-800">❤️ 눈</button>
+              <button onclick="addVectorPart('mouth_laugh')" class="px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-extrabold text-rose-700">웃는 입</button>
+              <button onclick="addVectorPart('mouth_shock')" class="px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-extrabold text-rose-700">놀란 입</button>
+              <button onclick="addVectorPart('mouth_cat')" class="px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-extrabold text-rose-700">고양이 입</button>
+              <button onclick="addVectorPart('prop_coffee')" class="px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-extrabold text-slate-700">☕ 커피</button>
+              <button onclick="addVectorPart('prop_laptop')" class="px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-extrabold text-slate-700">💻 노트북</button>
+              <button onclick="addVectorPart('prop_heart')" class="px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-extrabold text-slate-700">💖 하트</button>
+              <button onclick="addVectorPart('prop_star')" class="px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-extrabold text-slate-700">⭐ 별</button>
             </div>
           </div>
 
@@ -943,6 +1071,36 @@
           </button>
         </div>
       </div>
+
+      <!-- 🏪 스토어 진열대 경쟁력 시뮬레이터 -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+        <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
+          <div class="min-w-0">
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="store" class="w-5 h-5 text-indigo-600"></i> 스토어 진열대 경쟁력 시뮬레이터
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">인기 12종 사이에 내 메인 쌀네일을 끼워 넣어 한눈에 들어오는지 비교합니다.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <select id="shelf-store" onchange="renderStoreShelf()" class="px-2 py-1.5 rounded-lg border border-slate-300 text-[11px] font-bold bg-white">
+              <option value="ogq">네이버 OGQ</option>
+              <option value="line">LINE</option>
+            </select>
+            <select id="shelf-rank" onchange="renderStoreShelf()" class="px-2 py-1.5 rounded-lg border border-slate-300 text-[11px] font-bold bg-white">
+              <option value="0">1위 자리</option>
+              <option value="2">3위 자리</option>
+              <option value="5">6위 자리</option>
+              <option value="8">9위 자리</option>
+              <option value="11">12위 자리</option>
+            </select>
+            <button onclick="toggleShelfDark()" class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-700">🌙/☀️</button>
+          </div>
+        </div>
+        <div id="store-shelf-container" class="rounded-2xl p-3 bg-slate-50 border border-slate-200 transition-colors">
+          <div id="store-shelf-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2"></div>
+        </div>
+        <p class="text-[11px] text-slate-500 leading-relaxed">같은 줄에 쓸었을 때 <b>얼굴이 더 크고 색이 진한 작품</b>이 먼저 눈에 들어옵니다. 내 쌀네일이 묻혀 보이면 1번 컷의 크기·채도를 올려 보세요.</p>
+      </div>
     </section>
 
     <!-- ======================================================= -->
@@ -972,6 +1130,16 @@
             <input id="board-outline" type="checkbox" checked onchange="renderBoard()" class="accent-indigo-600" /> 다크 배경 외곽선 강조(미리보기)
           </label>
           <span id="board-count" class="ml-auto px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700">완성 0 / 24</span>
+        </div>
+
+        <!-- 📏 24장 크기·기준선 자동 통일 -->
+        <div class="flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-indigo-50/60 border border-indigo-200">
+          <span class="text-[11px] font-extrabold text-indigo-800 shrink-0">📏 크기·기준선 자동 통일</span>
+          <span id="baseline-status" class="text-[11px] text-slate-600">아직 정렬하지 않았습니다.</span>
+          <div class="ml-auto flex flex-wrap gap-2">
+            <button onclick="normalizeBaseline24()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-extrabold transition">24장 자동 통일</button>
+            <button onclick="undoNormalizeBaseline()" id="btn-baseline-undo" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-600 text-[11px] font-bold transition">↩ 되돌리기</button>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -1004,12 +1172,126 @@
           </div>
         </div>
       </div>
+
+      <!-- 🩺 심사 반려 사전 진단기 (AI QA) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+        <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
+          <div class="min-w-0">
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="shield-check" class="w-5 h-5 text-indigo-600"></i> 심사 반려 사전 진단기 (AI QA)
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">누끼 잔상 · 크기·기준선 편차 · 다크모드 외곽선 부족 · 미완성 컷을 한 번에 검사합니다.</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="runQADiagnostic()" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-extrabold shadow-xs transition">🩺 진단하기</button>
+            <button onclick="qaOneClickAutoFix()" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold shadow-xs transition">⚡ 1클릭 자동 수정</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-2 text-center">
+          <div class="p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-100">
+            <div class="text-[10px] font-bold text-slate-500">심사 준비도</div>
+            <div id="qa-score" class="text-lg font-black text-indigo-700">—</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100">
+            <div class="text-[10px] font-bold text-slate-500">통과</div>
+            <div id="qa-pass" class="text-lg font-black text-emerald-700">0</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200">
+            <div class="text-[10px] font-bold text-slate-500">주의</div>
+            <div id="qa-warn" class="text-lg font-black text-amber-600">0</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200">
+            <div class="text-[10px] font-bold text-slate-500">미완성</div>
+            <div id="qa-fail" class="text-lg font-black text-rose-600">0</div>
+          </div>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr><th class="p-2 text-left font-extrabold">컷</th><th class="p-2 text-left font-extrabold">판정</th><th class="p-2 text-left font-extrabold">사유</th><th class="p-2 text-right font-extrabold">바로가기</th></tr>
+            </thead>
+            <tbody id="qa-rows"><tr><td colspan="4" class="p-4 text-center text-slate-400 font-bold">[🩺 진단하기]를 누르면 24컷을 검사합니다.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ======================================================= -->
     <!-- TAB 4: 📦 멀티 플랫폼 내보내기 & 다국어 SEO -->
     <!-- ======================================================= -->
     <section id="tab-export" class="tab-panel space-y-5">
+
+      <!-- 🧳 멀티 플랫폼 한 번에 ZIP -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+        <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
+          <div class="min-w-0">
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="archive" class="w-5 h-5 text-indigo-600"></i> 멀티 플랫폼 한 번에 ZIP (폴더·규격 자동 정리)
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">필요한 플랫폼만 체크하면 플랫폼별 폴더에 규격을 맞춰 담고, <b>용량 검수표</b>까지 같이 넣어 <b>ZIP 하나</b>로 내려줍니다.</p>
+          </div>
+          <span class="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-extrabold shrink-0">규격 자동 · 파일명 01.png</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 text-xs">
+          <label class="flex items-start gap-2 p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/50 cursor-pointer">
+            <input id="mz-ogq" type="checkbox" checked class="mt-0.5 accent-emerald-600" />
+            <span><b class="text-slate-800">네이버 OGQ</b><br/><span class="text-[11px] text-slate-600">740×640 · 24장 + 메인/탭</span></span>
+          </label>
+          <label class="flex items-start gap-2 p-2.5 rounded-xl border border-green-200 bg-green-50/40 cursor-pointer">
+            <input id="mz-line" type="checkbox" checked class="mt-0.5 accent-green-600" />
+            <span><b class="text-slate-800">LINE 크리에이터스</b><br/><span class="text-[11px] text-slate-600">370×320 · 8~40장 + 메인/탭</span></span>
+          </label>
+          <label class="flex items-start gap-2 p-2.5 rounded-xl border border-amber-200 bg-amber-50/50 cursor-pointer">
+            <input id="mz-kakao" type="checkbox" class="mt-0.5 accent-amber-500" />
+            <span><b class="text-slate-800">카카오톡 시안</b><br/><span class="text-[11px] text-slate-600">360×360 · 150KB 이하</span></span>
+          </label>
+          <label class="flex items-start gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+            <input id="mz-sns" type="checkbox" checked class="mt-0.5 accent-slate-600" />
+            <span><b class="text-slate-800">텔레그램 · 디스코드</b><br/><span class="text-[11px] text-slate-600">512×512</span></span>
+          </label>
+          <label class="flex items-start gap-2 p-2.5 rounded-xl border border-indigo-200 bg-indigo-50/50 cursor-pointer">
+            <input id="mz-goods" type="checkbox" class="mt-0.5 accent-indigo-600" />
+            <span><b class="text-slate-800">굿즈 칼선(도무송)</b><br/><span class="text-[11px] text-slate-600">1000×1000 · 칼선 여백</span></span>
+          </label>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+            LINE 장수
+            <select id="mz-line-count" class="px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white">
+              <option value="8">8장</option>
+              <option value="16">16장</option>
+              <option value="24" selected>24장</option>
+              <option value="32">32장</option>
+              <option value="40">40장</option>
+            </select>
+          </label>
+          <button onclick="exportMultiZIP()" id="btn-multi-zip" class="ml-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-extrabold shadow-xs transition">
+            🧳 멀티 ZIP 한 번에 받기
+          </button>
+        </div>
+        <p class="text-[11px] leading-relaxed text-slate-500">
+          ZIP 안에는 <b>naver_ogq / line_creators / kakao_sian / telegram_discord / goods_diecut</b> 폴더와
+          <b>규격·용량 검수표(readme.txt)</b>가 함께 들어갑니다. 카카오 150KB·OGQ 1MB를 넘는 장은 표에 표시됩니다.
+        </p>
+      </div>
+
+      <!-- 💾 .emstudio 프로젝트 백업 / 복원 -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <i data-lucide="hard-drive" class="w-4 h-4 text-indigo-600"></i> .emstudio 프로젝트 백업 / 복원
+          </h2>
+          <p class="text-[11px] text-slate-500 mt-0.5">24컷 원본·보정값·시트·문구를 한 파일로 저장합니다. 다른 기기에서 그대로 이어서 작업할 수 있어요.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 shrink-0">
+          <button onclick="exportEmstudioFile()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-extrabold transition">⬇️ 백업 저장</button>
+          <button onclick="document.getElementById('emstudio-file').click()" class="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-[11px] font-extrabold transition">⬆️ 백업 불러오기</button>
+          <input id="emstudio-file" type="file" accept=".emstudio,application/json" class="hidden" onchange="importEmstudioFile(event)" />
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <!-- 좌측 (6 cols): 멀티 플랫폼 ZIP 패키징 -->
         <div class="lg:col-span-6 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3.5">
@@ -1272,6 +1554,53 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         </div>
       </div>
 
+      <!-- 3-3. v4 Max 4종 (11/27) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+        <h3 class="text-base font-extrabold text-slate-900">3-3. 11/27 v4 — 한도를 아끼는 4가지</h3>
+        <p class="text-xs text-slate-500">별도 유료 키·새 백엔드 없이, 브라우저와 기존 서버 프록시만으로 동작합니다.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🧩 3×3 그리드 시트 & 9등분</h4>
+            <p class="text-slate-600 mt-1"><b>탭 2 맨 위</b>에서 한 장으로 9개 표정을 뽑고 자동으로 9등분해 <b>#01~#09 · #10~#18 · #19~#24</b>에 한 번에 채웁니다. AI 그림은 1번만 소모되고, 같은 시트라 얼굴·색감이 더 잘 붙습니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
+            <h4 class="font-extrabold text-slate-900">✂️ 외곽 추적 Flood-Fill 누끼</h4>
+            <p class="text-slate-600 mt-1">테두리 4변에서 안쪽으로 번지는 배경만 지워 <b>흰색 몸통·둥근 눈이 안 뚫립니다</b>. 누끼 방식·배경 허용 오차·잔여물 제거를 탭 2 우측에서 조절하세요.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-fuchsia-50/60 border border-fuchsia-200">
+            <h4 class="font-extrabold text-slate-900">📏 24장 크기·기준선 자동 통일</h4>
+            <p class="text-slate-600 mt-1">각 컷의 불투명 바운딩 박스를 재서 캐릭터 높이와 <b>하단 기준선을 같은 비율</b>로 맞춥니다. 탭 3-2(검수판)에서 [24장 자동 통일]을 누르면 되고, [↩ 되돌리기]도 있습니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200">
+            <h4 class="font-extrabold text-slate-900">🧳 멀티 플랫폼 원클릭 ZIP</h4>
+            <p class="text-slate-600 mt-1">탭 4 맨 위에서 <b>OGQ·LINE·카카오·텔레그램/디스코드·굿즈 칼선</b>을 골라 ZIP 하나로 받습니다. 플랫폼별 폴더·규격·`01.png` 파일명과 <b>용량 검수표</b>까지 자동 정리됩니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3-4. v4 Max 추가 이식 (캘리·QA·진열대·백업) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+        <h3 class="text-base font-extrabold text-slate-900">3-4. v4 Max에서 함께 가져온 도구</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-fuchsia-50/60 border border-fuchsia-200">
+            <h4 class="font-extrabold text-slate-900">✍️ 손글씨 캘리그라피 & 입체 겹침</h4>
+            <p class="text-slate-600 mt-1">탭 2 타이포그래피 항목에서 <b>[✍️ 손글씨 패드]</b>를 켜고 캔버스에 직접 쓰세요. 글씨 레이어를 <b>뒤</b>로 두면 캐릭터 팔·머리가 글씨 앞으로 나오는 입체 연출이 됩니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
+            <h4 class="font-extrabold text-slate-900">🩺 심사 반려 사전 진단기 (AI QA)</h4>
+            <p class="text-slate-600 mt-1">탭 3-2에서 24컷의 누끼 잔상·크기/기준선 편차·외곽선 부족을 점수로 보여 주고, <b>[⚡ 1클릭 자동 수정]</b>으로 누끼·흰 외곽선·기준선을 한 번에 고칩니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🏪 스토어 진열대 시뮬레이터</h4>
+            <p class="text-slate-600 mt-1">탭 3 아래에서 인기 12종 사이에 내 1번 컷을 끼워 놓고, 순위 자리·라이트/다크를 바꾸며 눈에 띄는지 비교합니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-extrabold text-slate-900">💾 .emstudio 백업/복원</h4>
+            <p class="text-slate-600 mt-1">탭 4에서 24컷 원본·보정값·시트·문구를 한 파일로 저장하고 다른 기기에서 그대로 복원합니다. 캐릭터 시트·카드뉴스·다국어 SEO도 같은 탭에 있습니다.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- 4. FAQ -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-2.5">
         <h3 class="text-base font-extrabold text-slate-900">4. 자주 묻는 질문 (FAQ)</h3>
@@ -1302,6 +1631,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         <li><b>탭 3:</b> 다크모드 채팅방에서 콤보 이어보내기 테스트 후 1080px 홍보 카드뉴스를 저장하세요.</li>
         <li><b>탭 3-2:</b> 24종을 검정(#111)·흰색(#fff) 배경에 동시에 놓고 외곽선·가독성을 한 번에 검수합니다.</li>
         <li><b>탭 4:</b> OGQ·LINE·굿즈 ZIP 패키지와 다국어 SEO를 한 번에 내려받으세요.</li>
+        <li><b>🧩 v4 신기능:</b> 탭 2 맨 위 <b>3×3 시트 9등분</b>, 우측 <b>Flood-Fill 정밀 누끼</b>, 탭 3-2 <b>24장 크기·기준선 통일</b>, 탭 4 맨 위 <b>멀티 플랫폼 ZIP</b>.</li>
         <li><b>움직이는 스티커:</b> 스튜디오 5번에서 모션을 고르고 GIF·APNG·WebM 으로 저장하세요.</li>
       </ol>
       <div class="flex justify-end gap-2 pt-2">
@@ -1392,11 +1722,24 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       // 🎛️ 이미지 엔진 — 'auto'(Gemini 우선 → 무료 폴백) | 'pollinations'(무료 고정)
       imageEngine: 'auto',
       pollSeed: 0,
+      // 🧩 3×3 그리드 시트 (한 장 → 9등분)
+      sheetPreviewUrl: null,
+      sheetBusy: false,
+      // ✍️ 손글씨 패드
+      calliMode: false,
+      activeCalliStroke: null,
+      // 🏪 스토어 진열대
+      shelfDark: false,
+      // 📏 24장 크기·기준선 통일 되돌리기 스냅샷
+      normalizeUndo: null,
     };
 
     function createDefaultSettings(text) {
       return {
         removeBg: true,
+        cutoutMode: 'flood',   // flood = 외곽 추적 Flood-Fill(흰 몸통 보호) | color = 단순 색상 치환
+        cutoutTol: 96,         // 배경 허용 오차(30~150)
+        despeckle: true,       // 잔여물·고립 픽셀 제거
         erode: 1,
         strokeWidth: 10,
         remaster: 'none',
@@ -1411,7 +1754,9 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         textY: 530,
         textStyle: 'outline',   // outline | sticker | shadow | badge | neon | curve
         textSlant: 0,
-        parts: [], // { type, x, y, size }
+        textLayerMode: 'front', // front = 캐릭터 앞 | back = 캐릭터 뒤(입체 겹침)
+        calliStrokes: [],       // ✍️ 손글씨 획
+        parts: [], // { type, x, y, size } 또는 { kind, x, y, scale, rot }
         motion: 'none',
         particle: 'none'
       };
@@ -1645,6 +1990,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       } else if (tabId === 'tab-review') {
         renderReview24Grid();
         renderPromoCard();
+        renderStoreShelf();
       } else if (tabId === 'tab-board') {
         renderBoard();
       }
@@ -2303,6 +2649,16 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       else cb.classList.add('hidden');
 
       document.getElementById('ctrl-rembg').checked = s.removeBg;
+      const cutEl = document.getElementById('ctrl-cutout');
+      if (cutEl) cutEl.value = s.cutoutMode || 'flood';
+      const tolEl = document.getElementById('ctrl-tol');
+      const tolNow = s.cutoutTol == null ? 96 : s.cutoutTol;
+      if (tolEl) tolEl.value = tolNow;
+      const tolVal = document.getElementById('val-tol');
+      if (tolVal) tolVal.textContent = tolNow;
+      const dspEl = document.getElementById('ctrl-despeckle');
+      if (dspEl) dspEl.checked = s.despeckle !== false;
+      document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('active', b.dataset.layer === (s.textLayerMode || 'front')));
       document.getElementById('ctrl-erode').value = s.erode;
       document.getElementById('val-erode').textContent = s.erode + 'px';
       document.getElementById('ctrl-stroke').value = s.strokeWidth;
@@ -2347,13 +2703,154 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       if (key === 'fontSize') document.getElementById('val-fsize').textContent = val;
       if (key === 'textArch') document.getElementById('val-arch').textContent = val;
       if (key === 'textSlant') document.getElementById('val-slant').textContent = val + '°';
+      if (key === 'cutoutTol') document.getElementById('val-tol').textContent = val;
 
-      if (['removeBg', 'erode', 'strokeWidth', 'remaster'].includes(key) && state.loadedRawImg) {
+      if (['removeBg', 'erode', 'strokeWidth', 'remaster', 'cutoutMode', 'cutoutTol', 'despeckle'].includes(key) && state.loadedRawImg) {
         state.processedCharCanvas = processCharacterCanvas(state.loadedRawImg, slot.settings);
       }
     }
 
     // 핵심: 스마트 누끼 + Erode + 리마스터링 톤 통일 + 다크모드 외곽선
+    // =========================================================================
+    // 6-1. 정밀 누끼 — 외곽 추적 Flood-Fill (흰색 몸통 보호) + 잔여물 제거
+    //      · 테두리(4변)에서 안쪽으로 번지는 '배경과 이어진' 픽셀만 지운다.
+    //      · 캐릭터 내부의 흰색은 테두리와 연결되지 않아 그대로 살아남는다.
+    // =========================================================================
+    let lastCutoutStat = { mode: 'flood', removed: 0, total: 0 };
+
+    function bgSampleColors(d, size, box) {
+      const x0 = Math.max(0, Math.round((box && box.x) || 0));
+      const y0 = Math.max(0, Math.round((box && box.y) || 0));
+      const x1 = Math.min(size - 1, Math.round((box ? box.x + box.w : size) - 1));
+      const y1 = Math.min(size - 1, Math.round((box ? box.y + box.h : size) - 1));
+      const cx = Math.round((x0 + x1) / 2), cy = Math.round((y0 + y1) / 2);
+      const pts = [[x0 + 2, y0 + 2], [x1 - 2, y0 + 2], [x0 + 2, y1 - 2], [x1 - 2, y1 - 2],
+        [cx, y0 + 2], [cx, y1 - 2], [x0 + 2, cy], [x1 - 2, cy]];
+      const out = [];
+      for (const pt of pts) {
+        const x = pt[0], y = pt[1];
+        if (x < 0 || y < 0 || x >= size || y >= size) continue;
+        const i = (y * size + x) * 4;
+        if (d[i + 3] < 8) continue;
+        const c = [d[i], d[i + 1], d[i + 2]];
+        if (!out.some(function (o) { return Math.abs(o[0] - c[0]) + Math.abs(o[1] - c[1]) + Math.abs(o[2] - c[2]) < 24; })) out.push(c);
+      }
+      if (!out.length) out.push([255, 255, 255]);
+      return out;
+    }
+
+    function floodFillBackground(d, size, opt) {
+      opt = opt || {};
+      const tol = Math.max(8, Math.min(220, opt.tol == null ? 96 : opt.tol));
+      const colors = bgSampleColors(d, size, opt.box);
+      const n = size * size;
+      function isBg(i) {
+        if (d[i + 3] === 0) return true;
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        for (let k = 0; k < colors.length; k++) {
+          const c = colors[k];
+          if (Math.abs(r - c[0]) + Math.abs(g - c[1]) + Math.abs(b - c[2]) < tol) return true;
+        }
+        // 아주 밝은(거의 흰) 배경도 포함 — 내부 흰색은 테두리와 연결되지 않아 안전
+        return (r > 238 && g > 238 && b > 238);
+      }
+      const seen = new Uint8Array(n);
+      const stack = new Int32Array(n);
+      let sp = 0;
+      function push(p) {
+        if (p < 0 || p >= n || seen[p]) return;
+        const i = p * 4;
+        if (d[i + 3] !== 0 && !isBg(i)) return;
+        seen[p] = 1;
+        if (sp < n) stack[sp++] = p;
+      }
+      for (let x = 0; x < size; x++) { push(x); push((size - 1) * size + x); }
+      for (let y = 0; y < size; y++) { push(y * size); push(y * size + size - 1); }
+      while (sp > 0) {
+        const p = stack[--sp];
+        const x = p % size, y = (p - x) / size;
+        if (x > 0) push(p - 1);
+        if (x < size - 1) push(p + 1);
+        if (y > 0) push(p - size);
+        if (y < size - 1) push(p + size);
+      }
+      let removed = 0;
+      for (let p = 0; p < n; p++) {
+        if (seen[p] && d[p * 4 + 3] !== 0) { d[p * 4 + 3] = 0; removed++; }
+      }
+      // 경계 부드럽게 — 배경과 닿은 가장자리 픽셀의 알파를 색 근접도에 따라 낮춘다
+      if (opt.feather !== false) {
+        const edge = [];
+        for (let y = 1; y < size - 1; y++) {
+          for (let x = 1; x < size - 1; x++) {
+            const p = y * size + x;
+            if (seen[p] || d[p * 4 + 3] === 0) continue;
+            if (!(seen[p - 1] || seen[p + 1] || seen[p - size] || seen[p + size])) continue;
+            edge.push(p);
+          }
+        }
+        for (let e = 0; e < edge.length; e++) {
+          const p = edge[e], i = p * 4, r = d[i], g = d[i + 1], b = d[i + 2];
+          let best = 1e9;
+          for (let k = 0; k < colors.length; k++) {
+            const c = colors[k];
+            best = Math.min(best, Math.abs(r - c[0]) + Math.abs(g - c[1]) + Math.abs(b - c[2]));
+          }
+          if (best < tol * 2.2) {
+            const a = Math.round(255 * Math.min(1, best / (tol * 2.2)));
+            d[i + 3] = Math.max(70, Math.min(235, a));
+          }
+        }
+      }
+      return removed;
+    }
+
+    function despeckleAlpha(d, size, minArea) {
+      const n = size * size;
+      const seen = new Uint8Array(n);
+      const stack = new Int32Array(n);
+      const comp = new Int32Array(n);
+      for (let start = 0; start < n; start++) {
+        if (seen[start] || d[start * 4 + 3] <= 20) continue;
+        let sp = 0, cnt = 0;
+        stack[sp++] = start; seen[start] = 1;
+        while (sp > 0) {
+          const p = stack[--sp];
+          comp[cnt++] = p;
+          const x = p % size, y = (p - x) / size;
+          const nb = [x > 0 ? p - 1 : -1, x < size - 1 ? p + 1 : -1, y > 0 ? p - size : -1, y < size - 1 ? p + size : -1];
+          for (let q = 0; q < 4; q++) {
+            const np = nb[q];
+            if (np < 0 || seen[np] || d[np * 4 + 3] <= 20) continue;
+            seen[np] = 1; stack[sp++] = np;
+          }
+        }
+        if (cnt < (minArea || 12)) {
+          for (let k = 0; k < cnt; k++) d[comp[k] * 4 + 3] = 0;
+        }
+      }
+    }
+
+    function alphaBBox(canvas, threshold) {
+      const w = canvas.width, h = canvas.height;
+      const d = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+      const th = threshold || 16;
+      let minX = w, minY = h, maxX = -1, maxY = -1;
+      for (let y = 0; y < h; y++) {
+        const row = y * w * 4;
+        for (let x = 0; x < w; x++) {
+          if (d[row + x * 4 + 3] > th) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX < 0) return null;
+      return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+    }
+
     function processCharacterCanvas(img, s) {
       const size = 480;
       const c = document.createElement('canvas');
@@ -2378,16 +2875,28 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       if (s.removeBg) {
         const imgData = ctx.getImageData(0, 0, size, size);
         const d = imgData.data;
-        const si = ((Math.floor(dy) + 2) * size + (Math.floor(dx) + 2)) * 4;
-        const bgR = d[si], bgG = d[si + 1], bgB = d[si + 2], bgA = d[si + 3];
-        if (bgA > 10) {
-          for (let i = 0; i < d.length; i += 4) {
-            if (d[i + 3] === 0) continue;
-            if (Math.abs(d[i] - bgR) + Math.abs(d[i + 1] - bgG) + Math.abs(d[i + 2] - bgB) < 78) {
-              d[i + 3] = 0;
+        const mode = s.cutoutMode === 'color' ? 'color' : 'flood';
+        let removed = 0;
+        if (mode === 'flood') {
+          removed = floodFillBackground(d, size, {
+            tol: s.cutoutTol == null ? 96 : s.cutoutTol,
+            box: { x: dx, y: dy, w: dw, h: dh },
+            feather: true
+          });
+        } else {
+          const si = ((Math.floor(dy) + 2) * size + (Math.floor(dx) + 2)) * 4;
+          const bgR = d[si], bgG = d[si + 1], bgB = d[si + 2], bgA = d[si + 3];
+          if (bgA > 10) {
+            for (let i = 0; i < d.length; i += 4) {
+              if (d[i + 3] === 0) continue;
+              if (Math.abs(d[i] - bgR) + Math.abs(d[i + 1] - bgG) + Math.abs(d[i + 2] - bgB) < 78) {
+                d[i + 3] = 0; removed++;
+              }
             }
           }
         }
+        if (s.despeckle !== false) despeckleAlpha(d, size, Math.max(9, Math.round(size * size * 0.00004)));
+        lastCutoutStat = { mode: mode, removed: removed, total: size * size };
         // Erode (경계 잔상 깎기)
         if (s.erode > 0) {
           const alpha = new Uint8ClampedArray(size * size);
@@ -2469,6 +2978,9 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         ctx.restore();
       });
 
+      // 1-1. 글씨·손글씨를 캐릭터 뒤로 보내는 모드면 먼저 그린다 (입체 겹침)
+      if (s.textLayerMode === 'back') { drawCalliStrokes(ctx, s); drawTextLayer(ctx, s); }
+
       // 2. 캐릭터
       if (charCanvas) {
         ctx.save();
@@ -2484,6 +2996,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       // 3. 만화 효과 파츠 (말풍선 & 이모지)
       (s.parts || []).forEach((p, idx) => {
         if (p.type === 'SPEEDLINES') return;
+        if (p.kind) { drawVectorPartAt(ctx, p, t); return; }
         ctx.save();
         const bob = t > 0 ? Math.sin(t * 4 + idx) * 5 : 0;
         if (p.type === 'BUBBLE') {
@@ -2512,96 +3025,102 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       }
 
       // 5. 타이포그래피 — 프리셋(외곽선·스티커·그림자·배지·네온·아치) + 기울기 + 지터
-      if (s.text && s.text.trim()) {
-        ctx.save();
-        ctx.font = `700 ${s.fontSize}px "${s.font}", sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
-        ctx.translate(s.textX, s.textY);
-        ctx.rotate(((s.textSlant || 0) * Math.PI) / 180);
+      if (s.textLayerMode !== 'back') { drawCalliStrokes(ctx, s); drawTextLayer(ctx, s); }
 
-        const chars = Array.from(s.text);
-        const widths = chars.map(ch => ctx.measureText(ch).width);
-        const totalW = widths.reduce((a, b) => a + b, 0);
-        const style = s.textStyle || 'outline';
-
-        if (style === 'badge') {
-          const padX = Math.max(18, s.fontSize * 0.34);
-          const padY = Math.max(10, s.fontSize * 0.2);
-          ctx.save();
-          ctx.shadowColor = 'rgba(15,23,42,0.3)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 6;
-          ctx.fillStyle = s.textColor;
-          ctx.strokeStyle = s.textStroke;
-          ctx.lineWidth = Math.max(4, s.fontSize * 0.1);
-          ctx.beginPath();
-          ctx.roundRect(-totalW / 2 - padX, -s.fontSize * 0.7 - padY, totalW + padX * 2, s.fontSize * 1.4 + padY * 2, 24);
-          ctx.fill(); ctx.stroke();
-          ctx.restore();
-        }
-
-        let curX = -totalW / 2;
-        chars.forEach((ch, idx) => {
-          const cx = curX + widths[idx] / 2;
-          const norm = totalW > 0 ? (cx / (totalW / 2)) : 0;
-          const archY = (s.textArch || 0) * (norm * norm) * 4.5;
-          const jitterRot = s.textJitter ? (((idx % 2 === 0 ? 1 : -1)) * 0.055) : 0;
-          const archRot = (s.textArch || 0) * norm * 0.04;
-
-          ctx.save();
-          ctx.translate(cx, archY);
-          ctx.rotate(jitterRot + archRot);
-
-          if (style === 'badge') {
-            ctx.fillStyle = s.textStroke;
-            ctx.fillText(ch, 0, 0);
-          } else if (style === 'shadow') {
-            ctx.save();
-            ctx.shadowColor = 'rgba(15,23,42,0.55)';
-            ctx.shadowBlur = Math.max(2, s.fontSize * 0.08);
-            ctx.shadowOffsetX = Math.max(2, s.fontSize * 0.06);
-            ctx.shadowOffsetY = Math.max(3, s.fontSize * 0.1);
-            ctx.lineWidth = Math.max(8, s.fontSize * 0.2);
-            ctx.strokeStyle = s.textStroke;
-            ctx.strokeText(ch, 0, 0);
-            ctx.restore();
-            ctx.fillStyle = s.textColor;
-            ctx.fillText(ch, 0, 0);
-          } else if (style === 'sticker') {
-            ctx.lineWidth = Math.max(14, s.fontSize * 0.44);
-            ctx.strokeStyle = s.textStroke;
-            ctx.strokeText(ch, 0, 0);
-            ctx.lineWidth = Math.max(4, s.fontSize * 0.1);
-            ctx.strokeStyle = s.textColor;
-            ctx.globalAlpha = 0.28;
-            ctx.strokeText(ch, 0, 0);
-            ctx.globalAlpha = 1;
-            ctx.fillStyle = s.textColor;
-            ctx.fillText(ch, 0, 0);
-          } else if (style === 'neon') {
-            ctx.save();
-            ctx.shadowColor = s.textStroke;
-            ctx.shadowBlur = Math.max(12, s.fontSize * 0.38);
-            ctx.fillStyle = s.textColor;
-            ctx.fillText(ch, 0, 0);
-            ctx.fillText(ch, 0, 0);
-            ctx.restore();
-            ctx.lineWidth = Math.max(2, s.fontSize * 0.05);
-            ctx.strokeStyle = s.textStroke;
-            ctx.strokeText(ch, 0, 0);
-          } else {
-            ctx.lineWidth = Math.max(10, s.fontSize * 0.24);
-            ctx.strokeStyle = s.textStroke;
-            ctx.strokeText(ch, 0, 0);
-            ctx.fillStyle = s.textColor;
-            ctx.fillText(ch, 0, 0);
-          }
-
-          ctx.restore();
-          curX += widths[idx];
-        });
-        ctx.restore();
-      }
     }
 
+
+    function drawTextLayer(ctx, s) {
+      if (!s.text || !s.text.trim()) return;
+
+      ctx.save();
+      ctx.font = `700 ${s.fontSize}px "${s.font}", sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+      ctx.translate(s.textX, s.textY);
+      ctx.rotate(((s.textSlant || 0) * Math.PI) / 180);
+
+      const chars = Array.from(s.text);
+      const widths = chars.map(ch => ctx.measureText(ch).width);
+      const totalW = widths.reduce((a, b) => a + b, 0);
+      const style = s.textStyle || 'outline';
+
+      if (style === 'badge') {
+        const padX = Math.max(18, s.fontSize * 0.34);
+        const padY = Math.max(10, s.fontSize * 0.2);
+        ctx.save();
+        ctx.shadowColor = 'rgba(15,23,42,0.3)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 6;
+        ctx.fillStyle = s.textColor;
+        ctx.strokeStyle = s.textStroke;
+        ctx.lineWidth = Math.max(4, s.fontSize * 0.1);
+        ctx.beginPath();
+        ctx.roundRect(-totalW / 2 - padX, -s.fontSize * 0.7 - padY, totalW + padX * 2, s.fontSize * 1.4 + padY * 2, 24);
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+
+      let curX = -totalW / 2;
+      chars.forEach((ch, idx) => {
+        const cx = curX + widths[idx] / 2;
+        const norm = totalW > 0 ? (cx / (totalW / 2)) : 0;
+        const archY = (s.textArch || 0) * (norm * norm) * 4.5;
+        const jitterRot = s.textJitter ? (((idx % 2 === 0 ? 1 : -1)) * 0.055) : 0;
+        const archRot = (s.textArch || 0) * norm * 0.04;
+
+        ctx.save();
+        ctx.translate(cx, archY);
+        ctx.rotate(jitterRot + archRot);
+
+        if (style === 'badge') {
+          ctx.fillStyle = s.textStroke;
+          ctx.fillText(ch, 0, 0);
+        } else if (style === 'shadow') {
+          ctx.save();
+          ctx.shadowColor = 'rgba(15,23,42,0.55)';
+          ctx.shadowBlur = Math.max(2, s.fontSize * 0.08);
+          ctx.shadowOffsetX = Math.max(2, s.fontSize * 0.06);
+          ctx.shadowOffsetY = Math.max(3, s.fontSize * 0.1);
+          ctx.lineWidth = Math.max(8, s.fontSize * 0.2);
+          ctx.strokeStyle = s.textStroke;
+          ctx.strokeText(ch, 0, 0);
+          ctx.restore();
+          ctx.fillStyle = s.textColor;
+          ctx.fillText(ch, 0, 0);
+        } else if (style === 'sticker') {
+          ctx.lineWidth = Math.max(14, s.fontSize * 0.44);
+          ctx.strokeStyle = s.textStroke;
+          ctx.strokeText(ch, 0, 0);
+          ctx.lineWidth = Math.max(4, s.fontSize * 0.1);
+          ctx.strokeStyle = s.textColor;
+          ctx.globalAlpha = 0.28;
+          ctx.strokeText(ch, 0, 0);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = s.textColor;
+          ctx.fillText(ch, 0, 0);
+        } else if (style === 'neon') {
+          ctx.save();
+          ctx.shadowColor = s.textStroke;
+          ctx.shadowBlur = Math.max(12, s.fontSize * 0.38);
+          ctx.fillStyle = s.textColor;
+          ctx.fillText(ch, 0, 0);
+          ctx.fillText(ch, 0, 0);
+          ctx.restore();
+          ctx.lineWidth = Math.max(2, s.fontSize * 0.05);
+          ctx.strokeStyle = s.textStroke;
+          ctx.strokeText(ch, 0, 0);
+        } else {
+          ctx.lineWidth = Math.max(10, s.fontSize * 0.24);
+          ctx.strokeStyle = s.textStroke;
+          ctx.strokeText(ch, 0, 0);
+          ctx.fillStyle = s.textColor;
+          ctx.fillText(ch, 0, 0);
+        }
+
+        ctx.restore();
+        curX += widths[idx];
+      });
+      ctx.restore();
+    
+    }
     function startStudioAnimationLoop() {
       const canvas = document.getElementById('studio-main-canvas');
       const ctx = canvas.getContext('2d');
@@ -2808,10 +3327,23 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       maskC.addEventListener('touchmove', moveMask, { passive: false });
       window.addEventListener('touchend', endMask);
 
-      // 텍스트 & 만화 파츠 드래그 이동
+      // 텍스트 & 만화 파츠 드래그 이동 + 손글씨 패드
       const startDrag = e => {
         if (state.inpaintMode) return;
         const pos = getPos(mainC, e);
+        if (state.calliMode) {
+          e.preventDefault();
+          const s = state.slots[state.selectedSlotIndex].settings;
+          if (!s.calliStrokes) s.calliStrokes = [];
+          const colorEl = document.getElementById('ctrl-cali-color');
+          const widthEl = document.getElementById('ctrl-cali-width');
+          state.activeCalliStroke = {
+            points: [pos],
+            color: (colorEl && colorEl.value) || s.textColor || '#1e293b',
+            width: Number(widthEl && widthEl.value) || 10
+          };
+          return;
+        }
         const s = state.slots[state.selectedSlotIndex].settings;
         // 파츠 히트 테스트
         for (let i = s.parts.length - 1; i >= 0; i--) {
@@ -2828,6 +3360,14 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         }
       };
       const moveDrag = e => {
+        if (state.calliMode && state.activeCalliStroke) {
+          e.preventDefault();
+          const pos = getPos(mainC, e);
+          const pts = state.activeCalliStroke.points;
+          const last = pts[pts.length - 1];
+          if (!last || Math.hypot(pos.x - last.x, pos.y - last.y) > 2) pts.push(pos);
+          return;
+        }
         if (!state.dragTarget) return;
         e.preventDefault();
         const pos = getPos(mainC, e);
@@ -2841,7 +3381,16 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           p.y = pos.y - state.dragTarget.oy;
         }
       };
-      const endDrag = () => { state.dragTarget = null; };
+      const endDrag = () => {
+        if (state.activeCalliStroke) {
+          const st = state.activeCalliStroke;
+          const s = state.slots[state.selectedSlotIndex].settings;
+          if (!s.calliStrokes) s.calliStrokes = [];
+          if (st.points && st.points.length >= 2) s.calliStrokes.push(st);
+          state.activeCalliStroke = null;
+        }
+        state.dragTarget = null;
+      };
 
       mainC.addEventListener('mousedown', startDrag);
       mainC.addEventListener('mousemove', moveDrag);
@@ -3012,14 +3561,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       }
       showToast(`${platform.toUpperCase()} 규격 ZIP 생성 중...`, 'info');
       const zip = new JSZip();
-      const specs = {
-        ogq: { w: 740, h: 640, main: [240, 240], tab: [96, 74], pad: 10, dieCut: false },
-        line: { w: 370, h: 320, main: [240, 240], tab: [96, 74], pad: 8, dieCut: false },
-        kakao: { w: 360, h: 360, main: null, tab: null, pad: 8, dieCut: false },
-        sns: { w: 512, h: 512, main: null, tab: null, pad: 10, dieCut: false },
-        goods: { w: 1000, h: 1000, main: null, tab: null, pad: 70, dieCut: true }
-      };
-      const sp = specs[platform];
+      const sp = PLATFORM_SPECS[platform];
+      if (!sp) { showToast('지원하지 않는 플랫폼입니다.', 'warn'); return; }
       for (let i = 0; i < done.length; i++) {
         const blob = await resizeToBlob(done[i].finalImageUrl, sp.w, sp.h, sp.pad, sp.dieCut);
         zip.file(`${String(i + 1).padStart(2, '0')}.png`, blob);
@@ -3422,6 +3965,607 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     }
 
     // =========================================================================
+    // 9-g. v4 — 3×3 그리드 시트 · 기준선 통일 · 멀티 ZIP · QA · 진열대 · 백업
+    // =========================================================================
+    function loadImageEl(src) {
+      return new Promise(function (resolve, reject) {
+        const im = new Image();
+        im.crossOrigin = 'anonymous';
+        im.onload = function () { resolve(im); };
+        im.onerror = function () { reject(new Error('이미지를 읽지 못했습니다.')); };
+        im.src = src;
+      });
+    }
+
+    // --------------------------------------------- 3×3 그리드 시트
+    function sheetStartIndex() { const el = document.getElementById('sheet-start'); return el ? (Number(el.value) || 0) : 0; }
+    function sheetInset() { const el = document.getElementById('sheet-inset'); return el ? (Number(el.value) || 0) : 0; }
+
+    function buildGridSheetPrompt(start) {
+      const dnaEl = document.getElementById('dna-visual-prompt');
+      const styleEl = document.getElementById('select-artstyle');
+      const dna = (dnaEl && dnaEl.value) || 'cute anthropomorphic character';
+      const style = (styleEl && styleEl.value) || 'flat vector sticker';
+      const picks = state.slots.slice(start, start + 9);
+      const poses = picks.map(function (s, i) { return (i + 1) + ') ' + (s.prompt || s.desc || 'cute pose'); }).join(' | ');
+      return 'A single 3x3 GRID SHEET — exactly 3 equal columns and 3 equal rows, 9 separate cells, even spacing, no cell borders — showing the SAME cute character 9 times. ' +
+        'Character: ' + dna + '. Art style: ' + style + '. ' +
+        'Cell poses: ' + poses + '. ' +
+        'Each character fully inside its cell with margin, centered, identical face, proportions, palette and thick white sticker outline. ' +
+        'Flat vector Korean messenger sticker look, pure solid white #FFFFFF background in every cell, absolutely no text, no numbers, no speech bubbles anywhere.';
+    }
+
+    function updateSheetUI(note) {
+      const img = document.getElementById('sheet-preview');
+      const empty = document.getElementById('sheet-empty');
+      const btn = document.getElementById('btn-sheet-split');
+      const st = document.getElementById('sheet-status');
+      if (!img) return;
+      if (state.sheetPreviewUrl) {
+        img.src = state.sheetPreviewUrl;
+        img.classList.remove('hidden');
+        if (empty) empty.classList.add('hidden');
+        if (btn) btn.disabled = false;
+        if (st) st.textContent = note || '시트 준비됨 — 아래 [9등분]으로 채우세요.';
+      } else {
+        img.classList.add('hidden');
+        if (empty) empty.classList.remove('hidden');
+        if (btn) btn.disabled = true;
+        if (st) st.textContent = '아직 시트가 없습니다.';
+      }
+    }
+
+    function setSheetPreview(url, note) {
+      state.sheetPreviewUrl = url || null;
+      updateSheetUI(note);
+    }
+
+    async function generateGridSheetAI() {
+      if (state.sheetBusy) return;
+      const btn = document.getElementById('btn-sheet-ai');
+      const loader = document.getElementById('studio-loader');
+      const msg = document.getElementById('studio-loader-msg');
+      const orig = btn ? btn.innerHTML : '';
+      try {
+        state.sheetBusy = true;
+        if (btn) { btn.disabled = true; btn.textContent = '시트 생성 중...'; }
+        if (loader) { loader.classList.remove('hidden'); if (msg) msg.textContent = '3×3 그리드 시트 생성 중...'; }
+        const start = sheetStartIndex();
+        const prompt = buildGridSheetPrompt(start);
+        const ref = await buildReferencePayload();
+        const payload = { action: 'emoticon_image', mode: 'sheet', prompt: prompt, aspectRatio: '1:1' };
+        if (ref.ref) payload.reference = ref.ref;
+        Object.assign(payload, imageEnginePayload());
+        const json = await callEmoticonImage(payload, {
+          timeout: 110000,
+          setMsg: function (t) { if (msg) msg.textContent = t; }
+        });
+        if (!json.ok) { lastApiReason = json.reason || ''; throw new Error(apiMessage(json, '3×3 시트 생성에 실패했습니다.')); }
+        lastApiReason = '';
+        noteEngineResult(json);
+        setSheetPreview('data:' + (json.mime || 'image/png') + ';base64,' + json.data, 'AI 시트 · ' + usedEngineLabel(json) + ' (' + ref.note + ' 기준)');
+        showToast('3×3 시트가 만들어졌습니다 — 바로 9등분합니다.', 'success');
+        await splitGridSheet();
+      } catch (err) {
+        console.error(err);
+        showToast('시트 생성 실패 — ' + (err.message || '서버 오류') + ' (데모 시트로 먼저 확인해 보세요)', 'error');
+      } finally {
+        state.sheetBusy = false;
+        if (btn) { btn.disabled = false; btn.innerHTML = orig; if (window.lucide) lucide.createIcons(); }
+        if (loader) loader.classList.add('hidden');
+      }
+    }
+
+    function handleGridSheetUpload(e) {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      if (!/^image\//.test(f.type)) { showToast('이미지 파일만 올릴 수 있습니다.', 'warn'); return; }
+      const r = new FileReader();
+      r.onload = function (ev) {
+        setSheetPreview(ev.target.result, '업로드 시트 · ' + String(f.name).slice(0, 30));
+        showToast('시트를 불러왔습니다 — [✂️ 9등분]을 눌러 주세요.', 'success');
+      };
+      r.readAsDataURL(f);
+      e.target.value = '';
+    }
+
+    function generateDemoSheetUrl() {
+      const c = document.createElement('canvas'); c.width = 900; c.height = 900;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 900, 900);
+      for (let i = 0; i < 9; i++) {
+        const col = i % 3, row = Math.floor(i / 3);
+        drawBakjjuCharacter(ctx, col * 300 + 150, row * 300 + 160, 0.7, i);
+      }
+      return c.toDataURL('image/png');
+    }
+
+    function loadDemoSheet() {
+      setSheetPreview(generateDemoSheetUrl(), '데모 시트 (박쭈 9포즈 · AI 결과 아님)');
+      showToast('데모 3×3 시트를 불러왔습니다 — 9등분을 눌러보세요.', 'info');
+    }
+
+    async function splitGridSheet() {
+      if (!state.sheetPreviewUrl) { showToast('먼저 3×3 시트를 생성하거나 업로드해 주세요.', 'warn'); return; }
+      if (state.sheetBusy) return;
+      const loader = document.getElementById('studio-loader');
+      const msg = document.getElementById('studio-loader-msg');
+      const btn = document.getElementById('btn-sheet-split');
+      try {
+        state.sheetBusy = true;
+        if (btn) btn.disabled = true;
+        if (loader) { loader.classList.remove('hidden'); if (msg) msg.textContent = '시트를 9등분하는 중...'; }
+        const img = await loadImageEl(state.sheetPreviewUrl);
+        const start = sheetStartIndex();
+        const inset = sheetInset();
+        const cw = img.width / 3, ch = img.height / 3;
+        const targets = state.slots.slice(start, Math.min(24, start + 9));
+        let count = 0;
+        for (let i = 0; i < targets.length; i++) {
+          const row = Math.floor(i / 3), col = i % 3;
+          const sx = col * cw + cw * inset, sy = row * ch + ch * inset;
+          const sw = cw * (1 - inset * 2), sh = ch * (1 - inset * 2);
+          const tmp = document.createElement('canvas'); tmp.width = 560; tmp.height = 560;
+          const tctx = tmp.getContext('2d');
+          tctx.imageSmoothingQuality = 'high';
+          tctx.drawImage(img, sx, sy, sw, sh, 0, 0, 560, 560);
+          const slot = targets[i];
+          slot.rawImageUrl = tmp.toDataURL('image/png');
+          if (msg) msg.textContent = '9등분 후처리 중 (' + (i + 1) + '/' + targets.length + ') — 누끼·외곽선 적용';
+          slot.finalImageUrl = await renderSlotSnapshot(slot);
+          count++;
+        }
+        state.selectedSlotIndex = start;
+        loadSelectedSlotToStudio();
+        renderPlanSlotsGrid(); renderStudioThumbGrid(); renderReview24Grid(); renderBoard(); updateDoneCount(); updateReferenceStatus();
+        showToast('✂️ ' + count + '컷을 #' + String(start + 1).padStart(2, '0') + '부터 채웠습니다.', 'success');
+        updateSheetUI('9등분 완료 · ' + count + '컷 채움 (#' + String(start + 1).padStart(2, '0') + '~)');
+      } catch (err) {
+        console.error(err);
+        showToast('9등분 실패 — ' + (err.message || '이미지 오류'), 'error');
+      } finally {
+        state.sheetBusy = false;
+        if (btn) btn.disabled = !state.sheetPreviewUrl;
+        if (loader) loader.classList.add('hidden');
+      }
+    }
+
+    // --------------------------------------------- 24장 크기·기준선 통일
+    function updateBaselineStatus(text) {
+      const el = document.getElementById('baseline-status');
+      if (el) el.textContent = text;
+    }
+
+    async function measureSlotBox(slot) {
+      const img = await loadImageEl(slot.finalImageUrl);
+      const c = document.createElement('canvas'); c.width = 600; c.height = 600;
+      c.getContext('2d').drawImage(img, 0, 0, 600, 600);
+      return alphaBBox(c, 14);
+    }
+
+    async function normalizeBaseline24() {
+      const done = state.slots.filter(function (s) { return !!s.finalImageUrl; });
+      if (!done.length) { showToast('먼저 24종을 생성하거나 [📦 빠른 체험]으로 채워 주세요.', 'warn'); return; }
+      showToast('24장 바운딩 박스를 재는 중...', 'info');
+      try {
+        const rows = [];
+        for (let i = 0; i < done.length; i++) {
+          const b = await measureSlotBox(done[i]);
+          if (b) rows.push({ slot: done[i], box: b });
+        }
+        if (!rows.length) { showToast('불투명 영역을 찾지 못했습니다.', 'warn'); return; }
+        const hs = rows.map(function (r) { return r.box.h; }).sort(function (a, b) { return a - b; });
+        const median = hs[Math.floor(hs.length / 2)];
+        const BASE_Y = 556;
+        const targetH = Math.max(160, Math.min(520, median));
+        state.normalizeUndo = done.map(function (s) { return { slot: s, url: s.finalImageUrl }; });
+        let changed = 0;
+        for (let i = 0; i < rows.length; i++) {
+          const b = rows[i].box, slot = rows[i].slot;
+          let scale = targetH / b.h;
+          if (b.w * scale > 540) scale = 540 / b.w;
+          const c = document.createElement('canvas'); c.width = 600; c.height = 600;
+          const ctx = c.getContext('2d');
+          ctx.imageSmoothingQuality = 'high';
+          const img = await loadImageEl(slot.finalImageUrl);
+          const dx = 300 - (b.x + b.w / 2) * scale;
+          const dy = BASE_Y - (b.y + b.h) * scale;
+          ctx.drawImage(img, dx, dy, 600 * scale, 600 * scale);
+          slot.finalImageUrl = c.toDataURL('image/png');
+          changed++;
+        }
+        renderStudioThumbGrid(); renderPlanSlotsGrid(); renderReview24Grid(); renderBoard(); updateDoneCount();
+        loadSelectedSlotToStudio();
+        updateBaselineStatus('✅ ' + changed + '장 통일 · 높이 ' + Math.round(targetH) + 'px · 기준선 ' + BASE_Y + '/600');
+        showToast('📏 ' + changed + '장의 크기·기준선을 통일했습니다.', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('기준선 정렬 실패 — ' + (err.message || '이미지 오류'), 'error');
+      }
+    }
+
+    function undoNormalizeBaseline() {
+      const snap = state.normalizeUndo;
+      if (!snap || !snap.length) { showToast('되돌릴 정렬 기록이 없습니다.', 'warn'); return; }
+      snap.forEach(function (o) { o.slot.finalImageUrl = o.url; });
+      state.normalizeUndo = null;
+      renderStudioThumbGrid(); renderPlanSlotsGrid(); renderReview24Grid(); renderBoard(); updateDoneCount();
+      loadSelectedSlotToStudio();
+      updateBaselineStatus('↩ 정렬 전으로 되돌렸습니다.');
+      showToast('정렬 전으로 되돌렸습니다.', 'info');
+    }
+
+    // --------------------------------------------- 플랫폼 규격 & 멀티 ZIP
+    const PLATFORM_SPECS = {
+      ogq:   { label: '네이버 OGQ', folder: 'naver_ogq', w: 740, h: 640, main: [240, 240], tab: [96, 74], pad: 10, dieCut: false, limitKB: 1024, maxCount: 24, note: 'AI 제작물 등록 시 AI 활용 체크 필수' },
+      line:  { label: 'LINE 크리에이터스', folder: 'line_creators', w: 370, h: 320, main: [240, 240], tab: [96, 74], pad: 8, dieCut: false, limitKB: 1024, maxCount: 40, note: '8·16·24·32·40장 중 선택' },
+      kakao: { label: '카카오톡 시안', folder: 'kakao_sian', w: 360, h: 360, main: null, tab: null, pad: 8, dieCut: false, limitKB: 150, maxCount: 32, note: '생성형 AI 제작물 제안 제한 — 시안/직접 리터칭용' },
+      sns:   { label: '텔레그램·디스코드', folder: 'telegram_discord', w: 512, h: 512, main: null, tab: null, pad: 10, dieCut: false, limitKB: 512, maxCount: 24, note: '512×512 고화질' },
+      goods: { label: '굿즈 칼선', folder: 'goods_diecut', w: 1000, h: 1000, main: null, tab: null, pad: 70, dieCut: true, limitKB: 2048, maxCount: 24, note: '도무송 칼선 여백 포함 · 300DPI 권장' }
+    };
+
+    async function exportMultiZIP() {
+      const done = state.slots.filter(function (s) { return !!s.finalImageUrl; });
+      if (!done.length) { showToast('완성된 이모티콘이 없습니다. [📦 빠른 체험]을 먼저 눌러보세요!', 'warn'); return; }
+      const ids = ['ogq', 'line', 'kakao', 'sns', 'goods'].filter(function (id) {
+        const el = document.getElementById('mz-' + id);
+        return el && el.checked;
+      });
+      if (!ids.length) { showToast('플랫폼을 하나 이상 체크해 주세요.', 'warn'); return; }
+      const btn = document.getElementById('btn-multi-zip');
+      const orig = btn ? btn.innerHTML : '';
+      try {
+        if (btn) { btn.disabled = true; btn.textContent = 'ZIP 만드는 중...'; }
+        const zip = new JSZip();
+        const lines = ['이모티콘 스튜디오 AI Pro — 멀티 플랫폼 ZIP 검수표', '생성: ' + new Date().toLocaleString('ko-KR'), '캐릭터: ' + ((document.getElementById('dna-char-name') || {}).value || '이름 없음'), ''];
+        const manifest = { app: 'emoticon-studio-pro', generatedAt: new Date().toISOString(), character: ((document.getElementById('dna-char-name') || {}).value || ''), platforms: {}, sourceFiles: done.length };
+        for (let p = 0; p < ids.length; p++) {
+          const id = ids[p], sp = PLATFORM_SPECS[id];
+          const folder = zip.folder(sp.folder);
+          let list = done;
+          if (id === 'line') {
+            const nEl = document.getElementById('mz-line-count');
+            const n = Number(nEl && nEl.value) || 24;
+            list = done.slice(0, Math.min(n, done.length));
+          }
+          if (sp.maxCount) list = list.slice(0, sp.maxCount);
+          if (btn) btn.textContent = sp.label + ' 변환 중 (' + (p + 1) + '/' + ids.length + ')';
+          const sizes = [];
+          for (let i = 0; i < list.length; i++) {
+            const blob = await resizeToBlob(list[i].finalImageUrl, sp.w, sp.h, sp.pad, sp.dieCut);
+            const name = String(i + 1).padStart(2, '0') + '.png';
+            folder.file(name, blob);
+            sizes.push({ name: name, kb: Math.round(blob.size / 1024) });
+          }
+          if (sp.main) {
+            const b = await resizeToBlob(done[0].finalImageUrl, sp.main[0], sp.main[1], 6);
+            folder.file('main.png', b); sizes.push({ name: 'main.png', kb: Math.round(b.size / 1024) });
+          }
+          if (sp.tab) {
+            const b = await resizeToBlob(done[0].finalImageUrl, sp.tab[0], sp.tab[1], 4);
+            folder.file('tab.png', b); sizes.push({ name: 'tab.png', kb: Math.round(b.size / 1024) });
+          }
+          const over = sizes.filter(function (s) { return s.kb > sp.limitKB; });
+          const kbs = sizes.map(function (s) { return s.kb; });
+          lines.push('[' + sp.label + '] ' + sp.folder + '/ — ' + sp.w + '×' + sp.h + ' · ' + list.length + '장' + (sp.main ? ' + main/tab' : ''));
+          lines.push('  용량: ' + Math.min.apply(null, kbs) + '~' + Math.max.apply(null, kbs) + 'KB (권장 ' + sp.limitKB + 'KB 이하)');
+          lines.push('  비고: ' + sp.note);
+          if (over.length) lines.push('  ⚠ 초과 ' + over.length + '장: ' + over.map(function (s) { return s.name + '(' + s.kb + 'KB)'; }).join(', ') + ' — 리사이즈나 단순화가 필요합니다.');
+          lines.push('');
+          manifest.platforms[sp.folder] = { label: sp.label, width: sp.w, height: sp.h, count: list.length, files: sizes, overLimit: over.map(function (s) { return s.name; }), limitKB: sp.limitKB };
+        }
+        zip.file('readme.txt', lines.join('\n'));
+        zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+        const out = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(out);
+        const a = document.createElement('a');
+        const nm = ((document.getElementById('dna-char-name') || {}).value || 'emoticon').replace(/[\\/:*?"<>|]/g, '');
+        a.href = url; a.download = nm + '_multi_' + ids.join('-') + '.zip';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        const overAll = ids.reduce(function (n, id) { const m = manifest.platforms[PLATFORM_SPECS[id].folder]; return n + (m ? m.overLimit.length : 0); }, 0);
+        showToast('🧳 멀티 ZIP 완성 — ' + ids.map(function (id) { return PLATFORM_SPECS[id].label; }).join(' · ') + (overAll ? ' (용량 초과 ' + overAll + '장은 readme 표시)' : ''), overAll ? 'warn' : 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('멀티 ZIP 실패 — ' + (err.message || '생성 오류'), 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = orig; if (window.lucide) lucide.createIcons(); }
+      }
+    }
+
+    // --------------------------------------------- 벡터 파츠 (표정·소품 스왑)
+    function addVectorPart(kind) {
+      const slot = state.slots[state.selectedSlotIndex];
+      if (!slot) return;
+      if (!slot.settings.parts) slot.settings.parts = [];
+      const offset = slot.settings.parts.length % 3;
+      slot.settings.parts.push({ kind: kind, x: 300 + (offset - 1) * 70, y: 240 + (offset) * 40, scale: 1, rot: 0 });
+      commitCurrentSlot();
+      showToast('파츠를 붙였습니다 — 캔버스에서 끌어 옮기세요.', 'success');
+    }
+
+    function drawVectorPartAt(ctx, p, t) {
+      const sc = p.scale == null ? 1 : p.scale;
+      const bob = t > 0 ? Math.sin(t * 4 + (p.x || 0)) * 4 : 0;
+      ctx.save();
+      ctx.translate(p.x || 300, (p.y || 240) + bob);
+      ctx.rotate(((p.rot || 0) * Math.PI) / 180);
+      ctx.scale(sc, sc);
+      const kind = p.kind;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      if (kind === 'eye_sparkle') {
+        ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(-44, 0, 15, 0, Math.PI * 2); ctx.arc(44, 0, 15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(-49, -5, 5.5, 0, Math.PI * 2); ctx.arc(39, -5, 5.5, 0, Math.PI * 2); ctx.fill();
+      } else if (kind === 'eye_x') {
+        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 9;
+        [-44, 44].forEach(function (cx) { ctx.beginPath(); ctx.moveTo(cx - 14, -14); ctx.lineTo(cx + 14, 14); ctx.moveTo(cx + 14, -14); ctx.lineTo(cx - 14, 14); ctx.stroke(); });
+      } else if (kind === 'eye_heart') {
+        ctx.font = '34px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('❤️', -44, 0); ctx.fillText('❤️', 44, 0);
+      } else if (kind === 'mouth_laugh') {
+        ctx.fillStyle = '#fb7185'; ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.arc(0, -8, 26, 0, Math.PI); ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else if (kind === 'mouth_shock') {
+        ctx.fillStyle = '#fb7185'; ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.ellipse(0, 0, 16, 22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      } else if (kind === 'mouth_cat') {
+        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.arc(-13, -4, 13, 0, Math.PI); ctx.arc(13, -4, 13, 0, Math.PI); ctx.stroke();
+      } else if (kind === 'prop_coffee') {
+        ctx.font = '72px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('☕', 0, 0);
+      } else if (kind === 'prop_laptop') {
+        ctx.font = '72px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('💻', 0, 0);
+      } else if (kind === 'prop_heart') {
+        ctx.font = '72px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('💖', 0, 0);
+      } else if (kind === 'prop_sweat') {
+        ctx.font = '64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('💧', 0, 0);
+      } else if (kind === 'prop_star') {
+        ctx.font = '72px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('⭐', 0, 0);
+      } else {
+        ctx.font = '64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✨', 0, 0);
+      }
+      ctx.restore();
+    }
+
+    // --------------------------------------------- 손글씨(캘리그라피) 패드
+    function drawCalliStrokes(ctx, s) {
+      const list = (s.calliStrokes || []).slice();
+      if (state.activeCalliStroke) list.push(state.activeCalliStroke);
+      list.forEach(function (st) {
+        if (!st || !st.points || st.points.length < 2) return;
+        const trace = function () {
+          ctx.beginPath();
+          ctx.moveTo(st.points[0].x, st.points[0].y);
+          for (let i = 1; i < st.points.length - 1; i++) {
+            ctx.quadraticCurveTo(st.points[i].x, st.points[i].y, (st.points[i].x + st.points[i + 1].x) / 2, (st.points[i].y + st.points[i + 1].y) / 2);
+          }
+          const last = st.points[st.points.length - 1];
+          ctx.lineTo(last.x, last.y);
+        };
+        ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        trace(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = (st.width || 10) + 12; ctx.stroke();
+        trace(); ctx.strokeStyle = st.color || '#1e293b'; ctx.lineWidth = st.width || 10; ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    function toggleCalliPad() {
+      state.calliMode = !state.calliMode;
+      if (state.calliMode && state.inpaintMode) toggleInpaintMode();
+      const btn = document.getElementById('btn-calli-toggle');
+      if (btn) {
+        btn.textContent = state.calliMode ? '✍️ 손글씨 패드 ON — 캔버스에 쓰기' : '✍️ 손글씨 패드 OFF';
+        btn.className = state.calliMode
+          ? 'px-3 py-1.5 rounded-lg bg-fuchsia-600 text-white text-[11px] font-extrabold shadow-sm transition'
+          : 'px-3 py-1.5 rounded-lg bg-white border border-fuchsia-300 text-fuchsia-700 text-[11px] font-extrabold shadow-xs transition';
+      }
+      showToast(state.calliMode ? '캔버스에 직접 글씨를 써 보세요. (드래그 = 한 획)' : '손글씨 입력을 껐습니다.', 'info');
+    }
+
+    function clearCalliStrokes() {
+      const s = state.slots[state.selectedSlotIndex].settings;
+      s.calliStrokes = [];
+      state.activeCalliStroke = null;
+      commitCurrentSlot();
+      showToast('손글씨를 모두 지웠습니다.', 'info');
+    }
+
+    function undoCalliStroke() {
+      const s = state.slots[state.selectedSlotIndex].settings;
+      if (s.calliStrokes && s.calliStrokes.length) s.calliStrokes.pop();
+      commitCurrentSlot();
+    }
+
+    function setTextLayer(mode) {
+      const s = state.slots[state.selectedSlotIndex].settings;
+      s.textLayerMode = mode === 'back' ? 'back' : 'front';
+      document.querySelectorAll('[data-layer]').forEach(function (b) { b.classList.toggle('active', b.dataset.layer === s.textLayerMode); });
+      commitCurrentSlot();
+      showToast(s.textLayerMode === 'back' ? '글씨를 캐릭터 뒤로 보냈습니다(입체 겹침).' : '글씨를 캐릭터 앞으로 보냈습니다.', 'info');
+    }
+
+    // --------------------------------------------- 심사 반려 사전 진단기 (AI QA)
+    async function runQADiagnostic() {
+      showToast('심사 반려 사전 진단 중...', 'info');
+      const metrics = [];
+      for (let i = 0; i < state.slots.length; i++) {
+        const slot = state.slots[i];
+        slot.qaIssues = [];
+        slot.qaStatus = 'pass';
+        if (!slot.rawImageUrl || !slot.finalImageUrl) { slot.qaStatus = 'fail'; slot.qaIssues.push('미완성 슬롯'); continue; }
+        try {
+          const img = await loadImageEl(slot.rawImageUrl);
+          const proc = processCharacterCanvas(img, slot.settings);
+          const bbox = alphaBBox(proc, 16);
+          const pd = proc.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, proc.width, proc.height).data;
+          let soft = 0, opaque = 0;
+          for (let p = 3; p < pd.length; p += 4) { const a = pd[p]; if (a > 0 && a < 210) soft++; else if (a >= 210) opaque++; }
+          metrics.push({ slot: slot, bbox: bbox, soft: soft, opaque: opaque });
+        } catch (e) { slot.qaStatus = 'warn'; slot.qaIssues.push('이미지 분석 실패'); }
+      }
+      const hs = metrics.map(function (m) { return m.bbox ? m.bbox.h : 0; }).filter(function (h) { return h > 0; }).sort(function (a, b) { return a - b; });
+      const med = hs.length ? hs[Math.floor(hs.length / 2)] : 0;
+      let pass = 0, warn = 0, fail = 0;
+      for (let i = 0; i < state.slots.length; i++) {
+        const slot = state.slots[i];
+        if (slot.qaStatus === 'fail') { fail++; continue; }
+        if (slot.qaStatus === 'pass') {
+          const m = metrics.filter(function (x) { return x.slot === slot; })[0];
+          if (m && m.bbox) {
+            if (med && Math.abs(m.bbox.h - med) > med * 0.14) slot.qaIssues.push('크기·기준선 편차');
+            if (m.opaque > 0 && m.soft / m.opaque > 0.03) slot.qaIssues.push('누끼 잔상 의심');
+            if ((slot.settings.strokeWidth || 0) < 4) slot.qaIssues.push('다크모드 흰 외곽선 부족');
+          }
+          if (slot.qaIssues.length) { slot.qaStatus = 'warn'; warn++; } else { pass++; }
+        } else { warn++; }
+      }
+      const score = Math.round(((pass + warn * 0.6) / 24) * 100);
+      const set = function (id, v) { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('qa-score', score + '%'); set('qa-pass', pass); set('qa-warn', warn); set('qa-fail', fail);
+      const tbody = document.getElementById('qa-rows');
+      if (tbody) {
+        const rows = [];
+        state.slots.forEach(function (slot, idx) {
+          if (!slot.qaIssues || !slot.qaIssues.length) return;
+          const bad = slot.qaStatus === 'fail';
+          rows.push('<tr class="border-t border-slate-100"><td class="p-2 font-extrabold">#' + String(slot.id).padStart(2, '0') + '</td><td class="p-2 font-bold ' + (bad ? 'text-rose-500' : 'text-amber-500') + '">' + (bad ? '미완성' : '주의') + '</td><td class="p-2 text-slate-600">' + esc(slot.qaIssues.join(' · ')) + '</td><td class="p-2 text-right"><button onclick="openInStudio(' + idx + ')" class="px-2 py-0.5 rounded bg-indigo-600 text-white font-bold">수정</button></td></tr>');
+        });
+        tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="4" class="p-4 text-center text-emerald-600 font-extrabold">🎉 24종 모두 사전 진단 통과!</td></tr>';
+      }
+      updateBaselineStatus('QA ' + score + '% · 통과 ' + pass + ' / 주의 ' + warn + ' / 미완성 ' + fail);
+      showToast('심사 준비도 ' + score + '% (통과 ' + pass + ' · 주의 ' + warn + ' · 미완성 ' + fail + ')', score >= 80 ? 'success' : 'warn');
+    }
+
+    async function qaOneClickAutoFix() {
+      showToast('누끼·외곽선·기준선을 한 번에 고치는 중...', 'info');
+      for (let i = 0; i < state.slots.length; i++) {
+        const s = state.slots[i].settings;
+        s.removeBg = true;
+        s.despeckle = true;
+        s.cutoutMode = s.cutoutMode || 'flood';
+        s.erode = Math.max(1, s.erode || 0);
+        if (!s.strokeWidth || s.strokeWidth < 9) s.strokeWidth = 9;
+      }
+      for (let i = 0; i < state.slots.length; i++) {
+        if (state.slots[i].rawImageUrl) state.slots[i].finalImageUrl = await renderSlotSnapshot(state.slots[i]);
+      }
+      await normalizeBaseline24();
+      await runQADiagnostic();
+      showToast('⚡ 24종 자동 수정 완료 (누끼·흰 외곽선·기준선)', 'success');
+    }
+
+    // --------------------------------------------- 스토어 진열대 시뮬레이터
+    const RIVAL_DATA = [
+      { emoji: '🐰', title: '토끼 또비의 하루', author: '인기 작가 · 24종', color: '#fce7f3' },
+      { emoji: '🐻', title: '곰돌이 푸딩 일기', author: '인기 작가 · 32종', color: '#fef3c7' },
+      { emoji: '🐱', title: '고양이 출근길', author: '누적 1만', color: '#dbeafe' },
+      { emoji: '🐶', title: '멍멍이 간식시간', author: '신규 · 24종', color: '#dcfce7' },
+      { emoji: '🐤', title: '병아리 오피스', author: '직장인 인기', color: '#fef9c3' },
+      { emoji: '🦊', title: '여우의 속마음', author: '리액션 강자', color: '#ffedd5' },
+      { emoji: '🐼', title: '판다의 하루', author: '패밀리 인기', color: '#f1f5f9' },
+      { emoji: '🐸', title: '개구리 파이팅', author: '커플 인기', color: '#ecfccb' },
+      { emoji: '🐧', title: '펭귄 퇴근 기록', author: '직장인 인기', color: '#e0f2fe' },
+      { emoji: '🍞', title: '식빵 굽는 고양이', author: '감성 인기', color: '#fef3c7' },
+      { emoji: '🥑', title: '아보카도 다이어리', author: 'MZ 인기', color: '#ecfdf5' },
+      { emoji: '☕', title: '커피 한 잔의 여유', author: '카페 인기', color: '#f5f5f4' },
+    ];
+
+    function renderStoreShelf() {
+      const grid = document.getElementById('store-shelf-grid');
+      if (!grid) return;
+      const storeEl = document.getElementById('shelf-store');
+      const rankEl = document.getElementById('shelf-rank');
+      const store = (storeEl && storeEl.value) || 'ogq';
+      const myRank = Math.max(0, Math.min(11, Number(rankEl && rankEl.value) || 0));
+      const nameEl = document.getElementById('dna-char-name');
+      const myName = (nameEl && nameEl.value) || '내 캐릭터';
+      const myThumb = state.slots[0] && state.slots[0].finalImageUrl;
+      const items = RIVAL_DATA.slice();
+      items.splice(myRank, 0, { isMine: true, title: myName + '의 일상 24종', author: '내 작품 (NEW)', thumb: myThumb });
+      const dark = !!state.shelfDark;
+      grid.innerHTML = items.slice(0, 12).map(function (it, idx) {
+        const mine = !!it.isMine;
+        const box = mine ? 'border-2 border-indigo-500 ring-2 ring-indigo-400/40 bg-indigo-50/40' : (dark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-white');
+        const bg = mine ? (dark ? '#1e1e24' : '#f8fafc') : it.color;
+        const thumb = mine
+          ? (it.thumb ? '<img src="' + it.thumb + '" class="w-full h-full object-contain p-1"/>' : '<span class="text-[10px] font-bold text-slate-400 text-center px-1">내 썸네일<br/>(1번 컷)</span>')
+          : '<span class="text-4xl">' + it.emoji + '</span>';
+        return '<div class="rounded-xl p-2 border transition ' + box + '">' +
+          '<div class="relative aspect-square rounded-lg flex items-center justify-center overflow-hidden mb-1.5" style="background:' + bg + '">' +
+          '<span class="absolute top-1 left-1 px-1 py-0.5 rounded text-[9px] font-black ' + (idx < 3 ? 'bg-amber-500 text-white' : 'bg-slate-900/75 text-white') + '">' + (idx + 1) + '위</span>' + thumb + '</div>' +
+          '<div class="text-[11px] font-extrabold truncate ' + (dark ? 'text-white' : 'text-slate-800') + '">' + esc(it.title) + '</div>' +
+          '<div class="text-[10px] ' + (mine ? 'text-indigo-500 font-bold' : 'text-slate-400') + '">' + (store === 'ogq' ? 'OGQ · ' : 'LINE · ') + esc(it.author) + '</div></div>';
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function toggleShelfDark() {
+      state.shelfDark = !state.shelfDark;
+      const box = document.getElementById('store-shelf-container');
+      if (box) box.className = state.shelfDark
+        ? 'rounded-2xl p-3 bg-slate-950 border border-slate-800 transition-colors'
+        : 'rounded-2xl p-3 bg-slate-50 border border-slate-200 transition-colors';
+      renderStoreShelf();
+    }
+
+    // --------------------------------------------- .emstudio 백업 / 복원
+    function exportEmstudioFile() {
+      const val = function (id) { const el = document.getElementById(id); return el ? el.value : ''; };
+      const payload = {
+        app: 'emoticon-studio-pro', version: 'v4-2026-11-27', exportedAt: new Date().toISOString(),
+        charName: val('dna-char-name'), worldview: val('dna-worldview'), visualPrompt: val('dna-visual-prompt'),
+        presetKey: state.presetKey, imageEngine: state.imageEngine, pollSeed: state.pollSeed,
+        sheetPreviewUrl: state.sheetPreviewUrl,
+        slots: state.slots.map(function (s) {
+          return { id: s.id, category: s.category, combo: s.combo, desc: s.desc, prompt: s.prompt, rawImageUrl: s.rawImageUrl, finalImageUrl: s.finalImageUrl, settings: s.settings };
+        })
+      };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const nm = (payload.charName || 'emoticon').replace(/[\\/:*?"<>|]/g, '');
+      a.href = url; a.download = nm + '_' + new Date().toISOString().slice(0, 10) + '.emstudio';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      showToast('프로젝트를 .emstudio 파일로 백업했습니다.', 'success');
+    }
+
+    function importEmstudioFile(e) {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = function (ev) {
+        try {
+          const data = JSON.parse(String(ev.target.result));
+          if (!data || !Array.isArray(data.slots)) throw new Error('슬롯 데이터가 없습니다');
+          initSlots();
+          data.slots.slice(0, 24).forEach(function (src, i) {
+            const target = state.slots[i];
+            if (!target) return;
+            target.desc = src.desc || target.desc;
+            target.prompt = src.prompt || target.prompt;
+            target.rawImageUrl = src.rawImageUrl || null;
+            target.finalImageUrl = src.finalImageUrl || null;
+            target.settings = Object.assign(createDefaultSettings(src.settings && src.settings.text), src.settings || {});
+          });
+          const setV = function (id, v) { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+          setV('dna-char-name', data.charName); setV('dna-worldview', data.worldview); setV('dna-visual-prompt', data.visualPrompt);
+          if (data.imageEngine === 'pollinations' || data.imageEngine === 'auto') { state.imageEngine = data.imageEngine; renderImageEngineUI(); }
+          if (data.pollSeed) state.pollSeed = data.pollSeed;
+          if (data.sheetPreviewUrl) setSheetPreview(data.sheetPreviewUrl, '백업에서 복원한 시트');
+          state.selectedSlotIndex = 0;
+          renderPlanSlotsGrid(); renderStudioThumbGrid(); renderReview24Grid(); renderBoard(); updateDoneCount(); updateReferenceStatus(); loadSelectedSlotToStudio();
+          showToast('.emstudio 프로젝트를 불러왔습니다 (24컷 복원).', 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('올바른 .emstudio 파일이 아닙니다 — ' + (err.message || ''), 'error');
+        }
+      };
+      r.readAsText(f);
+      e.target.value = '';
+    }
+
+    // =========================================================================
     // 9-f. PWA 설치 · 서비스워커
     // =========================================================================
     let deferredInstallPrompt = null;
@@ -3444,7 +4588,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js').catch(function () {});
+        navigator.serviceWorker.register('sw.js?v=20261127v4').catch(function () {});
       });
     }
 
@@ -3462,6 +4606,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       updatePresetUI();
       updateReferenceStatus();
       renderImageEngineUI();   // 🎛️ 이미지 엔진 칩(자동/무료) 초기 표시
+      updateSheetUI();         // 🧩 3×3 시트 미리보기 상태
+      renderStoreShelf();      // 🏪 스토어 진열대 시뮬레이터
       updateDoneCount();
       renderBoard();
       lucide.createIcons();
