@@ -2016,6 +2016,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       switchTab('tab-studio');
     }
 
+    let lastApiReason = '';
+
     async function generateSingleSlotAI(idx) {
       const slot = state.slots[idx];
       if (!slot) return;
@@ -2040,7 +2042,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         if (ref.ref) payload.reference = ref.ref;
 
         const json = await callContentAI(payload, { timeout: 110000 });
-        if (!json.ok) throw new Error(apiMessage(json, '이미지 생성에 실패했습니다.'));
+        if (!json.ok) { lastApiReason = json.reason || ''; throw new Error(apiMessage(json, '이미지 생성에 실패했습니다.')); }
+        lastApiReason = '';
 
         slot.rawImageUrl = `data:${json.mime || 'image/png'};base64,${json.data}`;
         slot.finalImageUrl = await renderSlotSnapshot(slot);
@@ -2079,6 +2082,10 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           await generateSingleSlotAI(i);
           if (state.slots[i].finalImageUrl && state.slots[i].finalImageUrl !== before) okCount++;
           else failCount++;
+          if (lastApiReason === 'gemini_image_quota') {
+            showToast('Gemini 이미지 하루 한도를 다 써서 일괄 생성을 멈췄습니다. (성공 ' + okCount + ' / 실패 ' + failCount + ')', 'warn');
+            break;
+          }
         }
         showToast(`24종 일괄 ${state.batchStop ? '중단' : '완료'} — 성공 ${okCount} / 실패 ${failCount}`, state.batchStop ? 'warn' : 'success');
       } finally {
@@ -3215,7 +3222,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         if (format === 'gif') blob = await framesToGIF(built.frames, size, delayMs);
         else if (format === 'apng') blob = await framesToAPNG(built.frames, size, delayMs);
         else blob = await framesToWebM(built.frames, size, fps);
-        const name = (document.getElementById('dna-char-name').value || 'emoticon') + '_' + String(slot.id).padStart(2, '0') + '_motion.' + format;
+        const ext = format === 'apng' ? 'png' : format;   // APNG 는 .png 로 저장(플랫폼 규격)
+        const name = (document.getElementById('dna-char-name').value || 'emoticon') + '_' + String(slot.id).padStart(2, '0') + '_motion.' + ext;
         downloadBlob(blob, name);
         showToast(format.toUpperCase() + ' 저장 완료 (' + size + 'px · ' + built.frames.length + '프레임)', 'success');
       } catch (err) {
