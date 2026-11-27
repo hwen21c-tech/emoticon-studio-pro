@@ -4400,10 +4400,14 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         try {
           const img = await loadImageEl(slot.rawImageUrl);
           const proc = processCharacterCanvas(img, slot.settings);
-          const bbox = alphaBBox(proc, 16);
           const pd = proc.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, proc.width, proc.height).data;
           let soft = 0, opaque = 0;
           for (let p = 3; p < pd.length; p += 4) { const a = pd[p]; if (a > 0 && a < 210) soft++; else if (a >= 210) opaque++; }
+          // 크기·기준선은 '최종 이미지'(글씨·파츠 포함) 기준 — 기준선 통일과 같은 자로 잰다
+          const fim = await loadImageEl(slot.finalImageUrl);
+          const fc = document.createElement('canvas'); fc.width = 600; fc.height = 600;
+          fc.getContext('2d').drawImage(fim, 0, 0, 600, 600);
+          const bbox = alphaBBox(fc, 14);
           metrics.push({ slot: slot, bbox: bbox, soft: soft, opaque: opaque });
         } catch (e) { slot.qaStatus = 'warn'; slot.qaIssues.push('이미지 분석 실패'); }
       }
