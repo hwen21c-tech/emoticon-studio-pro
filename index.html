@@ -3748,20 +3748,20 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       ctx.save();
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
 
-      // 1) 꼬리 (몸통 뒤)
+      // 1) 꼬리 (몸통 뒤 — 올린 팔과 안 겹치게 아래·바깥으로)
       if (S.tail === 'bushy') {
         shape(function () {
-          ctx.moveTo(376, 470);
-          ctx.bezierCurveTo(470, 500, 496, 402, 452, 344);
-          ctx.bezierCurveTo(432, 316, 398, 330, 404, 372);
-          ctx.bezierCurveTo(430, 404, 424, 444, 376, 452);
+          ctx.moveTo(372, 486);
+          ctx.bezierCurveTo(452, 520, 502, 470, 486, 414);
+          ctx.bezierCurveTo(474, 384, 438, 392, 442, 428);
+          ctx.bezierCurveTo(452, 458, 438, 486, 372, 478);
           ctx.closePath();
         }, S.body, 7);
-        shape(ellipsePath(452, 352, 30, 34, -0.4), S.belly, 6);
+        shape(ellipsePath(478, 420, 26, 30, -0.4), S.belly, 6);
       } else if (S.tail === 'curl') {
         ctx.beginPath();
-        ctx.moveTo(388, 468);
-        ctx.bezierCurveTo(470, 470, 492, 392, 462, 344);
+        ctx.moveTo(386, 486);
+        ctx.bezierCurveTo(452, 512, 496, 470, 484, 424);
         ctx.lineCap = 'round';
         ctx.lineWidth = 36; ctx.strokeStyle = OL; ctx.stroke();
         ctx.lineWidth = 23; ctx.strokeStyle = S.body; ctx.stroke();
@@ -3836,8 +3836,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         limb(206, 404, 176, 468, 24);
         limb(394, 404, 424, 468, 24);
       } else if (EX === 'heart') {
-        limb(206, 408, 258, 438, 24);
-        limb(394, 408, 342, 438, 24);
+        limb(206, 408, 262, 442, 24);
+        limb(394, 408, 338, 442, 24);
       }
 
       // 6) 머리
@@ -3960,7 +3960,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           ctx.beginPath(); ctx.arc(bx, by, 16, 0, Math.PI * 2); ctx.stroke();
         });
       } else if (EX === 'heart') {
-        heart(438, 402, 34, '#fb7185');
+        heart(300, 438, 44, '#fb7185');
         heart(180, 190, 20, '#fda4af');
         heart(400, 138, 15, '#fda4af');
       } else if (EX === 'hi') {
