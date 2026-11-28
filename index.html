@@ -2064,6 +2064,17 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       var sp = speciesPrompt();
       return sp ? ' Character species (ears, nose, tail, body shape): ' + sp + '.' : '';
     }
+    /* 비주얼 DNA 에 이미 종이 적혀 있으면 같은 문장을 두 번 넣지 않는다 */
+    function speciesAlreadyInDna(dna) {
+      var sp = speciesPrompt();
+      if (!sp || !dna) return false;
+      return String(dna).toLowerCase().indexOf(sp.slice(0, 36).toLowerCase()) >= 0;
+    }
+    function speciesClauseFor(dna) { return speciesAlreadyInDna(dna) ? '' : speciesClauseEn(); }
+    /* 이전에 붙였던 'Species: ...' 꼬리를 떼어낸다 — 기획을 여러 번 눌러도 DNA 가 길어지지 않게 */
+    function stripSpeciesFromDna(dna) {
+      return String(dna || '').replace(/\s*Species:\s*[^.]*\.?/gi, '').replace(/[\s.,]+$/, '').trim();
+    }
     function tonePreset() {
       for (var i = 0; i < TONE_PRESETS.length; i++) if (TONE_PRESETS[i].key === state.tone) return TONE_PRESETS[i];
       return TONE_PRESETS[0];
@@ -3097,7 +3108,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           charName: document.getElementById('dna-char-name').value,
           // 종·말투는 서버가 읽는 필드(concept·visualPrompt·theme)에도 함께 실어 보낸다.
           concept: spKo ? (conceptEl.value ? conceptEl.value + ' / 종: ' + spKo : '종: ' + spKo) : conceptEl.value,
-          visualPrompt: sp ? ((dnaEl.value ? dnaEl.value : '') + ' Species: ' + sp + '.').trim() : dnaEl.value,
+          visualPrompt: sp ? ((stripSpeciesFromDna(dnaEl.value) ? stripSpeciesFromDna(dnaEl.value) + '. ' : '') + 'Species: ' + sp + '.').trim() : dnaEl.value,
           species: speciesPreset().key === 'none' ? '' : speciesPreset().label,
           speciesPrompt: sp,
           tone: tone.key === 'none' ? '' : tone.label,
@@ -3165,7 +3176,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         const cleanup = document.getElementById('toggle-logo-cleanup').checked;
 
         const prompt = `Create a clean character turnaround reference sheet on a pure flat white background (#FFFFFF): front view, 3/4 side view, back view, plus 4 cute facial expressions in one row. Character: ${dnaPrompt}.` +
-          speciesClauseEn() +
+          speciesClauseFor(dnaPrompt) +
           ` Character body: ${anthroPromptEn()}. Art style: ${artStylePromptEn()}.` +
           (cleanup ? ' Strictly remove any brand logos or real-world text, replace with cute original heart tape or star stickers.' : '') +
           ' No watermark, clean bold sticker line art, consistent colors.';
@@ -3247,7 +3258,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         const cleanup = document.getElementById('toggle-logo-cleanup').checked;
 
         const prompt = `Cute Korean messenger emoticon sticker of this exact character. Character DNA: ${dnaPrompt}.` +
-          speciesClauseEn() +
+          speciesClauseFor(dnaPrompt) +
           ` Character body: ${anthroPromptEn()}. Art style: ${artStylePromptEn()}.` +
           toneClauseEn() +
           ` Pose and expression: ${slot.prompt} (${slot.desc}).` +
@@ -4842,7 +4853,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       const picks = state.slots.slice(start, start + 9);
       const poses = picks.map(function (s, i) { return (i + 1) + ') ' + (s.prompt || s.desc || 'cute pose'); }).join(' | ');
       return 'A single 3x3 GRID SHEET — exactly 3 equal columns and 3 equal rows, 9 separate cells, even spacing, no cell borders — showing the SAME cute character 9 times. ' +
-        'Character: ' + dna + '.' + speciesClauseEn() + ' Character body: ' + body + '. Art style: ' + style + '. ' +
+        'Character: ' + dna + '.' + speciesClauseFor(dna) + ' Character body: ' + body + '. Art style: ' + style + '. ' +
         'Cell poses: ' + poses + '. ' +
         'Each character fully inside its cell with margin, centered, identical face, proportions, palette and thick white sticker outline. ' +
         'Flat vector Korean messenger sticker look, pure solid white #FFFFFF background in every cell, absolutely no text, no numbers, no speech bubbles anywhere.';
