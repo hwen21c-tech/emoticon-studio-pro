@@ -196,8 +196,105 @@
     #bulk-dropzone.drag-on { border-color: #d946ef !important; background: #fdf4ff !important; }
     #ai-cutout-bar { transition: width .2s ease; }
   </style>
+
+<!-- ===== 🎨 프리미엄 한글 웹폰트 통일 (전부 무료 상업용 — Pretendard · 지마켓산스 · 주아체 · 나눔손글씨펜) ===== -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
+<style id="krFontKit">
+  @font-face{font-family:'Gmarket Sans';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansLight.woff') format('woff');font-weight:300;font-style:normal;font-display:swap}
+  @font-face{font-family:'Gmarket Sans';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');font-weight:500;font-style:normal;font-display:swap}
+  @font-face{font-family:'Gmarket Sans';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff');font-weight:700 900;font-style:normal;font-display:swap}
+  @font-face{font-family:'BMJUA';src:url('https://cdn.jsdelivr.net/npm/@noonnu/bmjua@0.1.0/fonts/bmjua-normal.woff') format('woff');font-weight:400;font-style:normal;font-display:swap}
+  :root{
+    --kr-sans:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+    --kr-display:'Gmarket Sans','Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    --kr-jua:'BMJUA','Gmarket Sans','Pretendard Variable',sans-serif;
+    --kr-pen:'Nanum Pen Script','BMJUA','Pretendard Variable',cursive;
+  }
+</style>
+<script>
+/* 🎨 Canvas도 첫 획부터 한글 프리미엄 폰트로 그리도록 미리 받아 둔다 */
+(function () {
+  if (!document.fonts || !document.fonts.load) return;
+  var sample = '다람쥐 헌 챗바퀴에 타고파 가나다라마바사 0123';
+  var fams = ['"Pretendard Variable"', '"Gmarket Sans"', '"BMJUA"', '"Nanum Pen Script"'];
+  try {
+    window.__krFontsReady = Promise.all(fams.map(function (f) {
+      return document.fonts.load('900 40px ' + f, sample).catch(function () {});
+    }));
+  } catch (e) { window.__krFontsReady = Promise.resolve(); }
+  window.krFontFamily = function (family, weight) {
+    var f = String(family || '');
+    var map = { 'sans': 'var(--kr-sans)', 'gmarket': '"Gmarket Sans"', 'jua': '"BMJUA"', 'pen': '"Nanum Pen Script"' };
+    if (map[f]) return map[f];
+    if (f === 'Gmarket Sans' || f === 'BMJUA' || f === 'Nanum Pen Script' || f === 'Pretendard Variable') return '"' + f + '"';
+    return '"' + f + '", var(--kr-sans)';
+  };
+})();
+</script>
+<style id="studioSwitchCSS">
+/* ===== 🧭 스튜디오 통합 이동 바 (4대 스튜디오 공통 디자인) ===== */
+.ss-nav{
+  display:flex;align-items:center;gap:5px;flex-wrap:nowrap;
+  padding:5px 8px;margin:0;
+  background:linear-gradient(90deg,#070c14 0%,#0a1424 45%,#0d1126 100%);
+  border-bottom:1px solid rgba(148,163,184,.20);
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  font-size:11.5px;line-height:1;letter-spacing:-.01em;
+  overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  position:relative;z-index:45;box-sizing:border-box;
+}
+.ss-nav::-webkit-scrollbar{display:none}
+.ss-nav .ss-lead{flex:0 0 auto;font-size:9.5px;font-weight:800;letter-spacing:.06em;color:#64748b;margin:0 1px 0 0;padding-right:6px;border-right:1px solid rgba(148,163,184,.22);text-transform:uppercase}
+.ss-nav .ss-item{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:3px;
+  padding:5px 8px;border-radius:999px;
+  border:1px solid rgba(148,163,184,.22);
+  background:rgba(30,41,59,.70);color:#cbd5e1;
+  font-weight:800;font-size:11.5px;text-decoration:none;white-space:nowrap;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.ss-nav a.ss-item:hover{background:rgba(56,189,248,.16);border-color:rgba(56,189,248,.5);color:#e0f2fe}
+.ss-nav a.ss-item:active{transform:translateY(1px)}
+.ss-nav .ss-item.is-on{background:linear-gradient(135deg,rgba(56,189,248,.24),rgba(168,85,247,.24));border-color:rgba(56,189,248,.60);color:#f0f9ff}
+.ss-nav .ss-item.ss-money{border-color:rgba(245,158,11,.38);color:#fcd34d}
+.ss-nav .ss-item.ss-money.is-on{background:linear-gradient(135deg,rgba(245,158,11,.30),rgba(244,63,94,.20));border-color:rgba(245,158,11,.66);color:#fde68a}
+.ss-nav .ss-live{font-size:8.5px;font-weight:900;letter-spacing:.04em;padding:1px 4px;border-radius:4px;background:#22c55e;color:#04140a}
+.ss-nav .ss-alt{border-style:dashed;opacity:.9}
+</style>
+<style id="emoDietCSS">
+/* ===== 📱 폴드8(412px) UI 다이어트 — 설정 카드 아코디언 ===== */
+.emo-fold{border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;padding:2px 9px;margin:2px 0}
+.emo-fold>.emo-fold-h{list-style:none;cursor:pointer;display:block;padding:7px 0}
+.emo-fold>.emo-fold-h::-webkit-details-marker{display:none}
+.emo-fold[open]>.emo-fold-h{border-bottom:1px dashed #dbe3ee;margin-bottom:8px}
+.emo-fold .emo-arw{display:inline-block;font-size:10px;color:#94a3b8;transition:transform .18s;margin-left:auto}
+.emo-fold[open] .emo-arw{transform:rotate(180deg)}
+.emo-fold .emo-fold-h>div{width:100%}
+.emo-fold-badge{font-size:9px;font-weight:800;color:#64748b;border:1px solid #cbd5e1;border-radius:999px;padding:1px 6px}
+html.theme-dark .emo-fold{background:#111a2b;border-color:#243049}
+html.theme-dark .emo-fold[open]>.emo-fold-h{border-bottom-color:#243049}
+html.theme-dark .emo-fold .emo-arw{color:#64748b}
+@media (max-width:639px){
+  button[onclick="runQuickBoxDemo()"]{padding:0 9px;height:34px;border-radius:10px;white-space:nowrap}
+  button[onclick="runQuickBoxDemo()"]>span{white-space:nowrap;font-size:10.5px}
+  header .flex.flex-wrap.items-center.justify-end>button{height:34px;min-width:34px;justify-content:center}
+}
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col" style="font-family:var(--kr-sans)">
+
+<!-- ===== 🧭 스튜디오 통합 이동 바 — 쇼츠 · 이모티콘 · 작곡 · 수익화 ===== -->
+<nav class="ss-nav" id="studioSwitch" aria-label="스튜디오 이동">
+  <span class="ss-lead">Studio</span>
+  <a class="ss-item" href="https://hwen21c-tech.github.io/shorts-studio-pro/" target="_blank" rel="noopener" title="쇼츠">🎬 쇼츠</a>
+  <span class="ss-item is-on" aria-current="page" title="이모티콘">🎨 이모티콘</span>
+  <a class="ss-item" href="https://hwen21c-tech.github.io/aura-studio-pro/" target="_blank" rel="noopener" title="작곡">🎵 작곡</a>
+  <a class="ss-item ss-money" href="https://hwen21c-tech.github.io/stock-dashboard/preview-content-v2.html" target="_blank" rel="noopener" title="수익화">💰 수익화</a>
+</nav>
+
 
   <!-- ===== 가족 PIN 0623 잠금 오버레이 (서버 Gemini 키 보호) ===== -->
   <div id="pinLockOverlay" style="position: fixed; inset: 0; width: 100vw; height: 100vh; background: #0b1020; z-index: 999999; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
@@ -466,22 +563,44 @@
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">의인화 스타일</label>
                 <select id="select-anthro" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
-                  <option value="SD 2등신 (팔·다리 추가)">SD 2등신 (팔·다리 추가)</option>
-                  <option value="심플 페이스 (사물 형태 유지 + 표정만)">심플 페이스 (사물 형태 유지 + 표정만)</option>
-                  <option value="말랑 젤리·인형화">말랑 젤리·인형화</option>
+                  <option value="SD 2등신 (팔·다리 추가)" data-en="super-deformed 2-head-tall chibi body, tiny stubby arms and legs, big round head">SD 2등신 (팔·다리 추가)</option>
+                  <option value="심플 페이스 (사물 형태 유지 + 표정만)" data-en="keep the original object silhouette intact and add only a simple cute face (expressive eyes, small mouth), no limbs">심플 페이스 (사물 형태 유지 + 표정만)</option>
+                  <option value="말랑 젤리·인형화" data-en="soft squishy translucent jelly-plush body, gummy texture, rounded plush seams">말랑 젤리·인형화</option>
+                  <option value="치비 1.5등신 (왕머리 꼬마)" data-en="chibi 1.5-head-tall proportions, oversized head, small toddler body">치비 1.5등신 (왕머리 꼬마)</option>
+                  <option value="뚱뚠이 찹쌀떡 체형" data-en="round chubby rice-cake body, plump cheeks, squishy belly">뚱뚠이 찹쌀떡 체형</option>
+                  <option value="동글이 무표정 짤방형" data-en="perfectly round body with a blank deadpan poker face, meme reaction style">동글이 무표정 짤방형</option>
+                  <option value="오피스 직장인 (명찰·커피 소품)" data-en="office worker version wearing a shirt and a neck-strap ID badge, holding a paper coffee cup">오피스 직장인 (명찰·커피 소품)</option>
+                  <option value="수인·동물 귀 꼬리화" data-en="kemono anthro version with animal ears and a fluffy tail on the object body">수인·동물 귀 꼬리화</option>
+                  <option value="3등신 하이틴 소년/소녀" data-en="3-head-tall teen boy/girl body with youthful slim proportions and a trendy casual outfit">3등신 하이틴 소년/소녀</option>
+                  <option value="롱다리·길쭉이 B급 개그 체형" data-en="long spindly comic limbs and a stretched tall body, intentionally goofy B-grade gag proportions">롱다리·길쭉이 B급 개그 체형</option>
+                  <option value="후드·모자 쓴 꾸러기" data-en="wearing an oversized hoodie and a beanie/cap, playful little rascal look">후드·모자 쓴 꾸러기</option>
+                  <option value="미니 도트 마스코트" data-en="tiny pixel-dot mascot body with minimal dot eyes and a small compact silhouette">미니 도트 마스코트</option>
                 </select>
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">화풍 프리셋</label>
                 <select id="select-artstyle" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
-                  <option value="몽글 손그림">몽글 손그림 (따뜻한 색연필/크레파스)</option>
-                  <option value="깔끔 플랫 벡터">깔끔 플랫 벡터 (선명한 외곽선)</option>
-                  <option value="B급 병맛 낙서">B급 병맛 낙서 (유쾌한 키치)</option>
-                  <option value="파스텔 수채화">파스텔 수채화 (포근한 감성)</option>
-                  <option value="3D 클레이">3D 클레이 (말랑한 피규어)</option>
+                  <option value="몽글 손그림" data-en="warm hand-drawn crayon and colored-pencil texture with soft rounded strokes">몽글 손그림</option>
+                  <option value="깔끔 플랫 벡터" data-en="clean flat vector illustration with crisp bold outlines and flat color fills">깔끔 플랫 벡터</option>
+                  <option value="B급 병맛 낙서" data-en="goofy B-grade doodle scribble, intentionally messy kitsch humor">B급 병맛 낙서</option>
+                  <option value="파스텔 수채화" data-en="soft pastel watercolor wash, gentle paper grain, cozy mood">파스텔 수채화</option>
+                  <option value="3D 클레이" data-en="glossy 3D clay render, soft squishy figurine, studio lighting">3D 클레이</option>
+                  <option value="인스타툰" data-en="Korean Instagram webtoon style, thick black outlines, simple flat cel shading">인스타툰</option>
+                  <option value="레트로 90년대 애니풍" data-en="1990s retro anime cel style, slightly grainy film colors, vintage line art">레트로 90년대 애니풍</option>
+                  <option value="연필 스케치·낙서장" data-en="pencil sketch on notebook paper, rough graphite hatching, doodle margin notes">연필 스케치·낙서장</option>
+                  <option value="유광 에나멜 스티커" data-en="glossy enamel pin sticker finish, sharp highlight shine, thick die-cut white border">유광 에나멜 스티커</option>
+                  <option value="네온 팝아트" data-en="neon pop-art poster style, high-contrast saturated colors, bold graphic shapes">네온 팝아트</option>
+                  <option value="한국 수묵·민화풍" data-en="Korean ink-and-wash sumukhwa with minhwa folk-painting motifs, visible brush strokes">한국 수묵·민화풍</option>
+                  <option value="양모 펠트 인형 질감" data-en="needle-felted wool texture, fuzzy fibers, handmade plush look">양모 펠트 인형 질감</option>
+                  <option value="종이 오리기 (페이퍼 컷)" data-en="layered paper-cut collage, cut-paper edges, subtle drop shadows">종이 오리기 (페이퍼 컷)</option>
+                  <option value="픽셀 도트 8비트" data-en="8-bit pixel art with a limited palette and crisp pixel dithering">픽셀 도트 8비트</option>
                 </select>
               </div>
             </div>
+
+            <p class="text-[10.5px] text-indigo-700 bg-indigo-50/70 border border-indigo-100 rounded-lg px-2.5 py-1.5 leading-snug">
+              선택한 <b>의인화 스타일 · 화풍</b>은 영문 지시어로 바뀌어 <b>AI 사물 분석 → 캐릭터 시트 → 24종 생성</b> 프롬프트에 그대로 들어갑니다.
+            </p>
 
             <!-- AI 사물 분석 & 세계관/24종 기획 실행 버튼 -->
             <button onclick="analyzePhotoAndPlanAI()" id="btn-analyze-photo" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-sm font-extrabold shadow-sm flex items-center justify-center gap-2 transition">
@@ -489,7 +608,7 @@
             </button>
 
             <!-- 분석된 캐릭터 DNA 정보 -->
-            <div class="space-y-2.5 pt-2 border-t border-slate-100">
+            <details class="emo-fold"><summary class="emo-fold-h"><span class="text-xs font-black text-slate-800">🧬 비주얼 DNA · OGQ 제목·태그</span><span class="emo-fold-badge">고급</span><span class="cv-arw">▾</span></summary><div class="space-y-2.5 pt-2 border-t border-slate-100">
               <div class="grid grid-cols-2 gap-2.5">
                 <div>
                   <label class="block text-[11px] font-bold text-slate-600 mb-1">캐릭터 이름</label>
@@ -513,7 +632,7 @@
                 <div id="ogq-title" class="text-xs font-bold text-slate-700">— [AI 사물 분석]을 누르면 제목과 태그가 채워집니다.</div>
                 <div id="ogq-tags" class="text-[11px] text-slate-600 leading-relaxed">—</div>
               </div>
-            </div>
+            </div></details>
           </div>
 
           <!-- 1-2. 캐릭터 턴어라운드 시트 생성 & 고정 -->
@@ -827,15 +946,15 @@
         <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-4 max-h-[820px] overflow-y-auto">
 
           <!-- 1. 작화 통일 & 리마스터링 파이프라인 -->
-          <div class="space-y-2.5 pb-3 border-b border-slate-100">
-            <div class="flex items-center justify-between">
+          <details class="emo-fold"><summary class="emo-fold-h"><div class="flex items-center justify-between">
               <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
                 <i data-lucide="wand-2" class="w-3.5 h-3.5 text-indigo-600"></i> 1. 작화 통일 & 후처리 (리마스터링)
               </h4>
               <label class="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 cursor-pointer">
                 <input id="ctrl-rembg" type="checkbox" checked onchange="onSettingChange('removeBg', this.checked)" class="accent-indigo-600" /> 스마트 누끼
               </label>
-            </div>
+            </div><span class="emo-arw">▾</span></summary><!-- 1. 작화 통일 & 리마스터링 파이프라인 -->
+          <div class="space-y-2.5 pb-3 border-b border-slate-100">
 
             <!-- 정밀 누끼 (외곽 추적 Flood-Fill) -->
             <div id="panel-cutout" class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
@@ -915,7 +1034,7 @@
             <button onclick="applyRemasterToAll24()" class="w-full py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-extrabold transition">
               ✨ 24종 전체에 현재 보정·외곽선 일괄 적용
             </button>
-          </div>
+          </div></details>
 
           <!-- 2. 타이포그래피 -->
           <div class="space-y-2.5 pb-3 border-b border-slate-100">
@@ -932,6 +1051,10 @@
                 <option value="Poor Story">푸어스토리 (Poor Story)</option>
                 <option value="Dongle">동글체 (Dongle)</option>
                 <option value="Noto Sans KR">본고딕 (Noto Sans KR)</option>
+                <option value="Gmarket Sans">지마켓 산스 (Gmarket Sans)</option>
+                <option value="BMJUA">배민 주아체 (BMJUA)</option>
+                <option value="Nanum Pen Script">나눔 손글씨 펜 (Nanum Pen)</option>
+                <option value="Pretendard Variable">프리텐다드 (Pretendard)</option>
               </select>
               <div class="flex items-center justify-around bg-slate-50 rounded-lg border border-slate-200 px-2">
                 <label class="flex items-center gap-1 text-[11px] font-bold text-slate-600">
@@ -1013,13 +1136,13 @@
           </div>
 
           <!-- 3. 만화 효과 파츠 -->
-          <div class="space-y-2 pb-3 border-b border-slate-100">
-            <div class="flex items-center justify-between">
+          <details class="emo-fold"><summary class="emo-fold-h"><div class="flex items-center justify-between">
               <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
                 <i data-lucide="smile-plus" class="w-3.5 h-3.5 text-indigo-600"></i> 3. 만화 효과 파츠 (클릭 추가 · 드래그 이동)
               </h4>
               <button onclick="clearSlotParts()" class="text-[11px] text-rose-500 font-bold hover:underline">전체 삭제</button>
-            </div>
+            </div><span class="emo-arw">▾</span></summary><!-- 3. 만화 효과 파츠 -->
+          <div class="space-y-2 pb-3 border-b border-slate-100">
             <div class="flex flex-wrap gap-1.5">
               <button onclick="addComicPart('💧')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-base transition">💧</button>
               <button onclick="addComicPart('💢')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-base transition">💢</button>
@@ -1063,7 +1186,7 @@
               <input id="stamp-size" type="range" min="50" max="150" value="100" oninput="document.getElementById('val-stamp-size').textContent=this.value+'%'" class="flex-1 accent-fuchsia-500" />
               <span id="val-stamp-size">100%</span>
             </div>
-          </div>
+          </div></details>
 
           <!-- v5 — 원클릭 움직이는 스티커 모션 8종 -->
           <div class="space-y-2 pb-3 border-b border-slate-100">
@@ -1088,15 +1211,15 @@
           </div>
 
           <!-- 4. 원클릭 모션 엔진 -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
+          <details class="emo-fold"><summary class="emo-fold-h"><div class="flex items-center justify-between">
               <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
                 <i data-lucide="play-circle" class="w-3.5 h-3.5 text-indigo-600"></i> 4. 원클릭 모션 & 파티클 엔진
               </h4>
               <label class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 cursor-pointer">
                 <input id="ctrl-motion-play" type="checkbox" checked onchange="state.motionPlaying = this.checked" class="accent-emerald-600" /> 재생 ON
               </label>
-            </div>
+            </div><span class="emo-arw">▾</span></summary><!-- 4. 원클릭 모션 엔진 -->
+          <div class="space-y-2">
             <div class="grid grid-cols-2 gap-2">
               <select id="ctrl-motion" onchange="onSettingChange('motion', this.value)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
                 <option value="none">정지 (모션 없음)</option>
@@ -1116,13 +1239,13 @@
               </select>
             </div>
             <p class="text-[10.5px] text-slate-500 leading-snug">모션·파티클을 고른 뒤 아래 [움직이는 스티커]로 GIF·APNG·WebM 을 저장할 수 있습니다.</p>
-          </div>
+          </div></details>
 
           <!-- 5. 움직이는 스티커 내보내기 -->
-          <div class="space-y-2 pt-3 border-t border-slate-100">
-            <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+          <details class="emo-fold"><summary class="emo-fold-h"><h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
               <i data-lucide="film" class="w-3.5 h-3.5 text-indigo-600"></i> 5. 움직이는 스티커 내보내기
-            </h4>
+            </h4><span class="emo-arw">▾</span></summary><!-- 5. 움직이는 스티커 내보내기 -->
+          <div class="space-y-2 pt-3 border-t border-slate-100">
             <div class="grid grid-cols-2 gap-2">
               <select id="anim-size" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
                 <option value="360">360px (플랫폼 규격)</option>
@@ -1140,7 +1263,7 @@
               <button onclick="exportAnimated('webm')" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-extrabold">WebM 저장</button>
             </div>
             <p class="text-[10.5px] text-slate-500 leading-snug">APNG 는 투명 배경, GIF 는 흰 배경으로 저장됩니다. 모션을 [모션 없음]으로 두면 움직이지 않습니다.</p>
-          </div>
+          </div></details>
 
         </div>
       </div>
@@ -1892,6 +2015,18 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     // =========================================================================
     // 1. 전역 상태 & 상수
     // =========================================================================
+
+    /* 🎨 의인화·화풍 선택 → 영문 프롬프트 (select 의 data-en 을 그대로 쓴다) */
+    function styleEn(selectId, fallbackEn) {
+      var el = document.getElementById(selectId);
+      if (!el) return fallbackEn || '';
+      var opt = el.options[el.selectedIndex];
+      var en = opt && opt.getAttribute('data-en');
+      return (en && String(en).trim()) || (el.value ? String(el.value) : (fallbackEn || ''));
+    }
+    function anthroPromptEn() { return styleEn('select-anthro', 'super-deformed 2-head-tall chibi body with tiny arms and legs'); }
+    function artStylePromptEn() { return styleEn('select-artstyle', 'warm hand-drawn crayon and colored-pencil texture'); }
+
     // 서버 프록시 — 관제탑 Vercel(content-ai)이 Gemini 키를 대신 쓴다. 브라우저에 키를 두지 않는다.
     const API_BASE = 'https://stock-dashboard-live-bice.vercel.app';
     const CONTENT_AI = API_BASE + '/api/content-ai';
@@ -2758,6 +2893,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           visualPrompt: document.getElementById('dna-visual-prompt').value,
           anthro: anthro,
           artStyle: artStyle,
+          anthroPrompt: anthroPromptEn(),
+          artStylePrompt: artStylePromptEn(),
           cleanup: cleanup,
           preset: state.presetKey || 'basic',
           platform: 'ogq'
@@ -2814,7 +2951,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         const artStyle = document.getElementById('select-artstyle').value;
         const cleanup = document.getElementById('toggle-logo-cleanup').checked;
 
-        const prompt = `Create a clean character turnaround reference sheet on a pure flat white background (#FFFFFF): front view, 3/4 side view, back view, plus 4 cute facial expressions in one row. Character: ${dnaPrompt}. Style: ${anthro}, ${artStyle}.` +
+        const prompt = `Create a clean character turnaround reference sheet on a pure flat white background (#FFFFFF): front view, 3/4 side view, back view, plus 4 cute facial expressions in one row. Character: ${dnaPrompt}. Character body: ${anthroPromptEn()}. Art style: ${artStylePromptEn()}.` +
           (cleanup ? ' Strictly remove any brand logos or real-world text, replace with cute original heart tape or star stickers.' : '') +
           ' No watermark, clean bold sticker line art, consistent colors.';
 
@@ -2895,7 +3032,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         const cleanup = document.getElementById('toggle-logo-cleanup').checked;
 
         const prompt = `Cute Korean messenger emoticon sticker of this exact character. Character DNA: ${dnaPrompt}. ` +
-          `Anthropomorphic style: ${anthro}. Art style: ${artStyle}. Pose and expression: ${slot.prompt} (${slot.desc}).` +
+          `Character body: ${anthroPromptEn()}. Art style: ${artStylePromptEn()}. Pose and expression: ${slot.prompt} (${slot.desc}).` +
           (cleanup ? ' Remove all real brand logos and printed text; replace with original heart tape or star stickers.' : '');
 
         const ref = await buildReferencePayload();
@@ -4474,13 +4611,13 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
 
     function buildGridSheetPrompt(start) {
       const dnaEl = document.getElementById('dna-visual-prompt');
-      const styleEl = document.getElementById('select-artstyle');
       const dna = (dnaEl && dnaEl.value) || 'cute anthropomorphic character';
-      const style = (styleEl && styleEl.value) || 'flat vector sticker';
+      const style = artStylePromptEn() || 'clean flat vector illustration with crisp bold outlines';
+      const body = anthroPromptEn();
       const picks = state.slots.slice(start, start + 9);
       const poses = picks.map(function (s, i) { return (i + 1) + ') ' + (s.prompt || s.desc || 'cute pose'); }).join(' | ');
       return 'A single 3x3 GRID SHEET — exactly 3 equal columns and 3 equal rows, 9 separate cells, even spacing, no cell borders — showing the SAME cute character 9 times. ' +
-        'Character: ' + dna + '. Art style: ' + style + '. ' +
+        'Character: ' + dna + '. Character body: ' + body + '. Art style: ' + style + '. ' +
         'Cell poses: ' + poses + '. ' +
         'Each character fully inside its cell with margin, centered, identical face, proportions, palette and thick white sticker outline. ' +
         'Flat vector Korean messenger sticker look, pure solid white #FFFFFF background in every cell, absolutely no text, no numbers, no speech bubbles anywhere.';
@@ -5706,5 +5843,13 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     };
 
   </script>
+<script>
+document.addEventListener('toggle', function (e) {
+  var t = e.target;
+  if (t && t.tagName === 'DETAILS' && t.open && window.lucide && lucide.createIcons) {
+    try { lucide.createIcons(); } catch (err) {}
+  }
+}, true);
+</script>
 </body>
 </html>
