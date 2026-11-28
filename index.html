@@ -267,12 +267,13 @@
 <style id="emoDietCSS">
 /* ===== 📱 폴드8(412px) UI 다이어트 — 설정 카드 아코디언 ===== */
 .emo-fold{border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;padding:2px 9px;margin:2px 0}
-.emo-fold>.emo-fold-h{list-style:none;cursor:pointer;display:block;padding:7px 0}
+.emo-fold>.emo-fold-h{list-style:none;cursor:pointer;display:flex;align-items:center;gap:7px;padding:7px 0}
 .emo-fold>.emo-fold-h::-webkit-details-marker{display:none}
 .emo-fold[open]>.emo-fold-h{border-bottom:1px dashed #dbe3ee;margin-bottom:8px}
-.emo-fold .emo-arw{display:inline-block;font-size:10px;color:#94a3b8;transition:transform .18s;margin-left:auto}
+.emo-fold .emo-arw{flex:0 0 auto;display:inline-block;font-size:10px;color:#94a3b8;transition:transform .18s}
 .emo-fold[open] .emo-arw{transform:rotate(180deg)}
-.emo-fold .emo-fold-h>div{width:100%}
+.emo-fold .emo-fold-h>div{flex:1 1 auto;min-width:0;width:auto}
+.emo-fold .emo-fold-h>div.align-start,.emo-fold .emo-fold-h>div.items-start{align-items:center}
 .emo-fold-badge{font-size:9px;font-weight:800;color:#64748b;border:1px solid #cbd5e1;border-radius:999px;padding:1px 6px}
 html.theme-dark .emo-fold{background:#111a2b;border-color:#243049}
 html.theme-dark .emo-fold[open]>.emo-fold-h{border-bottom-color:#243049}
