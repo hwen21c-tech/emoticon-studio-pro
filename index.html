@@ -3750,14 +3750,13 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
 
       // 1) 꼬리 (몸통 뒤 — 올린 팔과 안 겹치게 아래·바깥으로)
       if (S.tail === 'bushy') {
-        shape(function () {
-          ctx.moveTo(372, 486);
-          ctx.bezierCurveTo(452, 520, 502, 470, 486, 414);
-          ctx.bezierCurveTo(474, 384, 438, 392, 442, 428);
-          ctx.bezierCurveTo(452, 458, 438, 486, 372, 478);
-          ctx.closePath();
-        }, S.body, 7);
-        shape(ellipsePath(478, 420, 26, 30, -0.4), S.belly, 6);
+        ctx.beginPath();
+        ctx.moveTo(392, 494);
+        ctx.quadraticCurveTo(508, 512, 492, 414);
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 54; ctx.strokeStyle = OL; ctx.stroke();
+        ctx.lineWidth = 38; ctx.strokeStyle = S.body; ctx.stroke();
+        shape(ellipsePath(492, 410, 23, 23), S.belly, 6);
       } else if (S.tail === 'curl') {
         ctx.beginPath();
         ctx.moveTo(386, 486);
@@ -3770,7 +3769,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       } else if (S.tail === 'fan') {
         shape(function () { ctx.moveTo(388, 486); ctx.lineTo(444, 456); ctx.lineTo(446, 500); ctx.closePath(); }, S.ear, 6);
       } else {
-        shape(ellipsePath(404, 488, 26, 24), armFill, 7);
+        shape(ellipsePath(432, 492, 24, 22), armFill, 7);
       }
 
       // 2) 발 (몸통 아래)
