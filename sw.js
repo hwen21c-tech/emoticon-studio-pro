@@ -7,7 +7,7 @@
    · 오프라인 셸: 화면 + 매니페스트 + 아이콘만 담는다.
    ============================================================ */
 const PREFIX = 'emoticon-studio-pro-';
-const VERSION = PREFIX + 'v4';
+const VERSION = PREFIX + 'v5';
 const BASE = new URL('./', self.location).pathname;   // 예: /shorts-studio-pro/
 const SHELL = [
   BASE,

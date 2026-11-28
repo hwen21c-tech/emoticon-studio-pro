@@ -8,7 +8,7 @@
   <meta id="metaThemeColor" name="theme-color" content="#4f46e5" />
 
   <!-- ===== 홈 화면 독립 앱 설치(PWA) ===== -->
-  <link rel="manifest" href="manifest.json?v=20261127v4" />
+  <link rel="manifest" href="manifest.json?v=20261128v5" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -174,6 +174,27 @@
     .seg-btn.active { background: #fff; color: #1e293b; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
     html.theme-dark .seg-btn.active { background: #334155; color: #f1f5f9; }
     #anim-format-grid button:disabled { opacity: .55; cursor: progress; }
+
+    /* ===== v5 — 배치 업로드 · 모션 · 도장 · 대사표 ===== */
+    .motion-btn { transition: all .12s ease; }
+    .motion-btn.active { background: #4f46e5 !important; color: #fff !important; border-color: #4338ca !important; }
+    .stamp-btn { transition: all .12s ease; }
+    .stamp-btn:active { transform: scale(.94); }
+    .audit-input { min-width: 0; }
+    .audit-row.audit-blank { background: #fff1f2; }
+    .audit-row.audit-dup { background: #fffbeb; }
+    .audit-row.audit-long { background: #fff7ed; }
+    .audit-row.audit-space { background: #f5f3ff; }
+    html.theme-dark .audit-row.audit-blank { background: rgba(244,63,94,.16) !important; }
+    html.theme-dark .audit-row.audit-dup { background: rgba(245,158,11,.16) !important; }
+    html.theme-dark .audit-row.audit-long { background: rgba(249,115,22,.14) !important; }
+    html.theme-dark .audit-row.audit-space { background: rgba(139,92,246,.14) !important; }
+    .chat-sticker-msg { filter: drop-shadow(0 2px 5px rgba(0,0,0,.14)); }
+    .chat-kakao-bg { background: #fde68a !important; }
+    .chat-sky-bg { background: #bacee0 !important; }
+    .chat-dark-bg { background: #18181b !important; }
+    #bulk-dropzone.drag-on { border-color: #d946ef !important; background: #fdf4ff !important; }
+    #ai-cutout-bar { transition: width .2s ease; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
@@ -570,6 +591,22 @@
               <button onclick="applyPreset('worker')" data-preset="worker" class="preset-btn px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">📈 주식·직장인용</button>
               <button onclick="applyPreset('couple')" data-preset="couple" class="preset-btn px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">💗 가족·연인용</button>
             </div>
+
+            <!-- v5 — 24종 인기 대사 패키지 5세트 -->
+            <div class="rounded-xl border border-fuchsia-200 bg-fuchsia-50/40 p-2.5 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-1">
+                <h4 class="text-[11px] font-black text-fuchsia-900">🎭 24종 인기 대사 패키지 5세트</h4>
+                <span class="text-[10px] font-bold text-fuchsia-700">대사 + 감정 태그를 한 번에</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5" id="text-package-buttons">
+                <button onclick="applyTextPackage('monday')" class="preset-btn px-2 py-1.5 rounded-lg bg-white border border-fuchsia-200 text-[11px] font-extrabold text-slate-700">💼 직장인 월요병</button>
+                <button onclick="applyTextPackage('couple')" class="preset-btn px-2 py-1.5 rounded-lg bg-white border border-fuchsia-200 text-[11px] font-extrabold text-slate-700">💗 커플 애교</button>
+                <button onclick="applyTextPackage('family')" class="preset-btn px-2 py-1.5 rounded-lg bg-white border border-fuchsia-200 text-[11px] font-extrabold text-slate-700">👨‍👩‍👧 가족 단톡방</button>
+                <button onclick="applyTextPackage('pet')" class="preset-btn px-2 py-1.5 rounded-lg bg-white border border-fuchsia-200 text-[11px] font-extrabold text-slate-700">🐶 반려동물 집사</button>
+                <button onclick="applyTextPackage('hello')" class="preset-btn col-span-2 px-2 py-1.5 rounded-lg bg-white border border-fuchsia-200 text-[11px] font-extrabold text-slate-700">🙇 안부·인사</button>
+              </div>
+              <p class="text-[10px] text-fuchsia-800/80 leading-snug">이미 만든 컷이 있으면 완성본까지 다시 그려 바로 반영합니다.</p>
+            </div>
             <div id="reference-status" class="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5">
               <span class="text-indigo-600">🔒 기준 캐릭터</span>
               <span id="reference-status-text">캐릭터 시트를 고정하거나 1번 컷을 먼저 만들면 24종 전체에 자동 적용됩니다.</span>
@@ -588,6 +625,50 @@
     <!-- TAB 2: 🎨 스튜디오 & 부분 수정 (Inpainting, Remaster, Motion) -->
     <!-- ======================================================= -->
     <section id="tab-studio" class="tab-panel">
+
+      <!-- v5 — 외부 이미지 24장 일괄 업로드 -->
+      <div id="panel-bulk" class="bg-white rounded-2xl border border-fuchsia-200 shadow-sm p-4 sm:p-5 mb-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="images" class="w-5 h-5 text-fuchsia-600"></i> 외부 이미지 24장 일괄 업로드
+            </h2>
+            <p class="text-[11px] text-slate-500 mt-0.5">다른 툴·PC에서 만든 이미지를 <b>한 번에 최대 24장</b> 골라 #01~#24에 순서대로 채웁니다.</p>
+          </div>
+          <span class="text-[10px] font-black px-2 py-1 rounded-full bg-fuchsia-600 text-white shrink-0">v5 NEW</span>
+        </div>
+        <div id="bulk-dropzone" class="rounded-2xl border-2 border-dashed border-fuchsia-200 bg-fuchsia-50/40 p-4 flex flex-col sm:flex-row items-center gap-3 transition">
+          <div class="w-12 h-12 rounded-xl bg-white border border-fuchsia-200 flex items-center justify-center shrink-0">
+            <i data-lucide="upload" class="w-5 h-5 text-fuchsia-600"></i>
+          </div>
+          <div class="flex-1 text-center sm:text-left">
+            <p class="text-xs font-bold text-slate-700">파일을 끌어다 놓거나 아래 버튼으로 선택하세요.</p>
+            <p class="text-[10.5px] text-slate-500 mt-0.5">파일 이름 순(01, 02, …)으로 채워지고, PNG·JPG·WebP 모두 됩니다.</p>
+          </div>
+          <label class="w-full sm:w-auto py-2 px-4 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-extrabold text-center cursor-pointer shadow-sm transition">
+            이미지 선택 (최대 24장)
+            <input id="bulk-file" type="file" accept="image/*" multiple class="hidden" onchange="handleBulkImageUpload(event)" />
+          </label>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <label class="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+            <input id="bulk-copy-style" type="checkbox" checked class="accent-fuchsia-600" /> 지금 누끼·테두리·그림자 설정을 24장에 함께 적용
+          </label>
+          <label class="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+            <input id="bulk-keep-text" type="checkbox" checked class="accent-fuchsia-600" /> 슬롯 문구(대사)도 함께 넣기
+          </label>
+        </div>
+        <div id="bulk-progress" class="hidden space-y-1.5">
+          <div class="flex items-center justify-between text-[11px] font-bold text-fuchsia-700">
+            <span id="bulk-progress-text">처리 중...</span><span id="bulk-progress-pct">0%</span>
+          </div>
+          <div class="h-2 rounded-full bg-slate-200 overflow-hidden"><div id="bulk-progress-bar" class="h-full bg-fuchsia-600" style="width:0%"></div></div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-[10.5px] text-slate-500 leading-relaxed">올린 뒤 바로 누끼·외곽선·그림자가 적용된 600px 완성본이 만들어집니다.</p>
+          <button id="bulk-zip-btn" onclick="goZipAfterBulk()" class="hidden px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-extrabold transition">🧳 ZIP 패키징으로 이동</button>
+        </div>
+      </div>
 
       <!-- 🧩 3×3 그리드 시트 (9컷 한 번에) -->
       <div id="panel-sheet" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
@@ -766,8 +847,20 @@
               </div>
               <select id="ctrl-cutout" onchange="onSettingChange('cutoutMode', this.value)" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white">
                 <option value="flood">외곽 추적 Flood-Fill (흰몸통 보호)</option>
+                <option value="ai">AI 정밀 누끼 (ONNX·초기 약 40MB 로드)</option>
                 <option value="color">단순 색상 치환 (예전 방식)</option>
               </select>
+              <div id="ai-cutout-panel" class="hidden rounded-lg bg-indigo-50/70 border border-indigo-200 p-2 space-y-1.5">
+                <div class="flex items-center justify-between gap-1 text-[10.5px] font-extrabold text-indigo-800">
+                  <span id="ai-cutout-status">AI 모델을 준비합니다…</span>
+                  <span id="ai-cutout-pct">0%</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-white/80 overflow-hidden"><div id="ai-cutout-bar" class="h-full bg-indigo-600" style="width:0%"></div></div>
+                <div class="flex items-center justify-between gap-1">
+                  <p class="text-[10px] text-indigo-700/80 leading-snug">첫 실행만 모델(약 40MB)을 받습니다. 오프라인·CDN 차단 시 외곽 추적 Flood-Fill로 자동 대체됩니다.</p>
+                  <button onclick="runAICutoutForCurrent(true)" class="shrink-0 px-2 py-1 rounded bg-indigo-600 text-white text-[10px] font-extrabold">🤖 다시 실행</button>
+                </div>
+              </div>
               <div>
                 <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
                   <span>배경 허용 오차</span><span id="val-tol">96</span>
@@ -775,6 +868,22 @@
                 <input id="ctrl-tol" type="range" min="30" max="150" step="2" value="96" oninput="onSettingChange('cutoutTol', Number(this.value))" class="w-full accent-indigo-600" />
               </div>
               <p class="text-[10.5px] leading-relaxed text-slate-500">테두리에서 안쪽으로 번지는 배경만 지워 <b>흰색 몸통·둥근 눈</b>이 뚫리지 않습니다. 잔상이 남으면 오차를 올리세요.</p>
+            </div>
+
+            <!-- v5 — 스티커 두꺼운 테두리 & 그림자 -->
+            <div class="p-2.5 rounded-xl bg-amber-50/60 border border-amber-200 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-extrabold text-amber-900">🖼️ 스티커 두꺼운 테두리</span>
+                <span id="val-sticker-border" class="text-[11px] font-black text-amber-700">0px</span>
+              </div>
+              <input id="ctrl-sticker-border" type="range" min="0" max="14" value="0" oninput="onSettingChange('stickerBorder', Number(this.value))" class="w-full accent-amber-500" />
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <label class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900">
+                  <input id="ctrl-sticker-shadow" type="checkbox" onchange="onSettingChange('stickerShadow', this.checked)" class="accent-amber-600" /> 드롭 섀도우
+                </label>
+                <button onclick="applyStickerFrameToAll24()" class="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[10.5px] font-extrabold">24장 전체 일괄 적용</button>
+              </div>
+              <p class="text-[10px] text-amber-800/80 leading-snug">다크모드 흰 외곽선과 같은 색이라, 둘 중 두꺼운 값(최대 14px)으로 테두리가 그려집니다.</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -860,6 +969,18 @@
                 <button onclick="applyTextStyle('neon')" data-ts="neon" class="preset-btn px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">네온 글로우</button>
                 <button onclick="applyTextStyle('curve')" data-ts="curve" class="preset-btn px-2 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-extrabold text-slate-700">아치 곡선</button>
               </div>
+              <div class="grid grid-cols-2 gap-2 pt-0.5">
+                <div>
+                  <label class="block text-[10.5px] font-bold text-slate-600 mb-0.5">말풍선 스타일</label>
+                  <select id="ctrl-bubble" onchange="onSettingChange('bubbleStyle', this.value)" class="w-full px-2 py-1 rounded-lg border border-slate-300 text-[11px] bg-white">
+                    <option value="none">없음</option>
+                    <option value="round">둥근 말풍선</option>
+                    <option value="shout">외침 말풍선</option>
+                    <option value="thought">생각 구름</option>
+                  </select>
+                </div>
+                <button onclick="copyStyleFromFirstSlot()" class="self-end py-1.5 px-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10.5px] font-extrabold leading-tight">🎯 1번 컷 스타일 → 23컷</button>
+              </div>
               <div class="flex items-center gap-2 text-[11px] font-bold text-slate-600">
                 <span>기울기</span>
                 <input id="ctrl-slant" type="range" min="-14" max="14" value="0" oninput="onSettingChange('textSlant', Number(this.value))" class="flex-1 accent-indigo-600" />
@@ -922,6 +1043,48 @@
               <button onclick="addVectorPart('prop_heart')" class="px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-extrabold text-slate-700">💖 하트</button>
               <button onclick="addVectorPart('prop_star')" class="px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-extrabold text-slate-700">⭐ 별</button>
             </div>
+
+            <!-- v5 — 말풍선 & 감정 도장 10종 -->
+            <div class="text-[11px] font-bold text-slate-600 pt-1">말풍선 & 감정 도장 10종 (클릭 추가 · 드래그 이동)</div>
+            <div class="grid grid-cols-5 gap-1" id="stamp-button-grid">
+              <button onclick="addStamp('bubble_round')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">💬</span>둥근 말풍선</button>
+              <button onclick="addStamp('bubble_shout')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">🗯</span>외침 말풍선</button>
+              <button onclick="addStamp('bubble_thought')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">💭</span>생각 구름</button>
+              <button onclick="addStamp('stamp_sweat')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-sky-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">💧</span>땀방울</button>
+              <button onclick="addStamp('stamp_anger')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-rose-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">💢</span>분노마크</button>
+              <button onclick="addStamp('stamp_sparkle')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-amber-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">✨</span>반짝이</button>
+              <button onclick="addStamp('stamp_heart')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-pink-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">💖</span>하트</button>
+              <button onclick="addStamp('stamp_tear')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-sky-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">😢</span>눈물</button>
+              <button onclick="addStamp('stamp_exclaim')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-rose-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">❗</span>느낌표</button>
+              <button onclick="addStamp('stamp_question')" class="stamp-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-violet-200 text-[9px] font-extrabold text-slate-700"><span class="text-base leading-none">❓</span>물음표</button>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+              <span class="shrink-0">도장 크기</span>
+              <input id="stamp-size" type="range" min="50" max="150" value="100" oninput="document.getElementById('val-stamp-size').textContent=this.value+'%'" class="flex-1 accent-fuchsia-500" />
+              <span id="val-stamp-size">100%</span>
+            </div>
+          </div>
+
+          <!-- v5 — 원클릭 움직이는 스티커 모션 8종 -->
+          <div class="space-y-2 pb-3 border-b border-slate-100">
+            <h4 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+              <i data-lucide="clapperboard" class="w-3.5 h-3.5 text-indigo-600"></i> 🎞️ 원클릭 움직이는 스티커 모션 8종
+            </h4>
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
+              <button onclick="setMotionScope('current')" id="motion-scope-current" class="seg-btn active flex-1 py-1 rounded-lg">현재 컷</button>
+              <button onclick="setMotionScope('all')" id="motion-scope-all" class="seg-btn flex-1 py-1 rounded-lg text-slate-500">24컷 전체</button>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5" id="motion-preset-grid">
+              <button onclick="applyMotionPreset('none')" data-motion="none" class="motion-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[9.5px] font-extrabold text-slate-700"><span class="text-sm leading-none">⏸</span>정지</button>
+              <button onclick="applyMotionPreset('hop')" data-motion="hop" class="motion-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[9.5px] font-extrabold text-slate-700"><span class="text-sm leading-none">⤴</span>콩콩 튀기</button>
+              <button onclick="applyMotionPreset('sway')" data-motion="sway" class="motion-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[9.5px] font-extrabold text-slate-700"><span class="text-sm leading-none">〰</span>흔들흔들</button>
+              <button onclick="applyMotionPreset('tremble')" data-motion="tremble" class="motion-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[9.5px] font-extrabold text-slate-700"><span class="text-sm leading-none">💢</span>부르르</button>
+              <button onclick="applyMotionPreset('heartbeat')" data-motion="heartbeat" class="motion-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[9.5px] font-extrabold text-slate-700"><span class="text-sm leading-none">💖</span>두근두근</button>
+              <button onclick="applyMotionPreset('spin')" data-motion="spin" class="motion-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[9.5px] font-extrabold text-slate-700"><span class="text-sm leading-none">🌀</span>빙글</button>
+              <button onclick="applyMotionPreset('popzoom')" data-motion="popzoom" class="motion-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[9.5px] font-extrabold text-slate-700"><span class="text-sm leading-none">😮</span>깜짝 줌</button>
+              <button onclick="applyMotionPreset('float')" data-motion="float" class="motion-btn flex flex-col items-center gap-0.5 py-1.5 rounded-lg bg-white border border-slate-300 text-[9.5px] font-extrabold text-slate-700"><span class="text-sm leading-none">☁</span>둥실둥실</button>
+            </div>
+            <p class="text-[10.5px] text-slate-500 leading-snug">8번 항목의 [GIF·APNG·WebM 저장]에 그대로 반영됩니다. 두근두근은 하트 파티클도 함께 켭니다.</p>
           </div>
 
           <!-- 4. 원클릭 모션 엔진 -->
@@ -936,12 +1099,14 @@
             </div>
             <div class="grid grid-cols-2 gap-2">
               <select id="ctrl-motion" onchange="onSettingChange('motion', this.value)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
-                <option value="none">모션 없음 (정지형)</option>
-                <option value="bounce">통통 튀기</option>
-                <option value="shake">부들부들 떨기</option>
-                <option value="nod">끄덕이기</option>
-                <option value="pulse">두근두근 확대</option>
-                <option value="wiggle">흔들흔들</option>
+                <option value="none">정지 (모션 없음)</option>
+                <option value="hop">콩콩 튀기</option>
+                <option value="sway">흔들흔들</option>
+                <option value="tremble">부르르 (분노·추위)</option>
+                <option value="heartbeat">두근두근 (하트)</option>
+                <option value="spin">빙글</option>
+                <option value="popzoom">깜짝 줌</option>
+                <option value="float">둥실둥실</option>
               </select>
               <select id="ctrl-particle" onchange="onSettingChange('particle', this.value)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
                 <option value="none">파티클 없음</option>
@@ -995,9 +1160,10 @@
               </h2>
               <p class="text-xs text-slate-500 mt-0.5">실제 채팅방 크기로 가독성을 확인하고 콤보 이모티콘을 연달아 보내보세요.</p>
             </div>
-            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-              <button onclick="setChatTheme('light')" id="chat-theme-light" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs">라이트모드</button>
-              <button onclick="setChatTheme('dark')" id="chat-theme-dark" class="px-3 py-1.5 rounded-lg text-slate-500">다크모드</button>
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
+              <button onclick="setChatTheme('kakao')" id="chat-theme-kakao" class="px-2.5 py-1.5 rounded-lg bg-white text-amber-900 shadow-xs">💛 카톡 노랑</button>
+              <button onclick="setChatTheme('light')" id="chat-theme-light" class="px-2.5 py-1.5 rounded-lg text-slate-500">🩵 하늘</button>
+              <button onclick="setChatTheme('dark')" id="chat-theme-dark" class="px-2.5 py-1.5 rounded-lg text-slate-500">🌙 다크</button>
             </div>
           </div>
 
@@ -1034,8 +1200,12 @@
                   </div>
                 </div>
               </div>
-              <div class="bg-white/95 p-2 text-center text-[11px] text-slate-400 border-t border-slate-200">
-                좌측 이모티콘 클릭 시 즉시 전송
+              <div class="bg-white/95 p-1.5 border-t border-slate-200 space-y-1">
+                <div class="flex items-center gap-1.5">
+                  <input id="chat-input" type="text" placeholder="메시지 입력 (Enter)" onkeydown="if(event.key==='Enter'){event.preventDefault();sendChatText();}" class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px]" />
+                  <button onclick="sendChatText()" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-[11px] font-extrabold">전송</button>
+                </div>
+                <p class="text-center text-[10px] text-slate-400">좌측 이모티콘 클릭 시 실제 크기로 전송</p>
               </div>
             </div>
           </div>
@@ -1073,6 +1243,28 @@
             <i data-lucide="download" class="w-4 h-4"></i> 1080×1080 홍보용 카드뉴스 PNG 다운로드
           </button>
         </div>
+      </div>
+
+      <!-- v5 — 24컷 대사·중복·오타 일람표 -->
+      <div id="panel-text-audit" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+        <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
+          <div class="min-w-0">
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="table-2" class="w-5 h-5 text-indigo-600"></i> 24컷 대사·중복·오타 일람표
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">24장 대사를 한 표로 펼쳐 빈 칸·중복·길이 초과를 표시하고, 그 자리에서 바로 고칩니다.</p>
+          </div>
+          <div id="audit-summary" class="flex flex-wrap gap-1.5 text-[10.5px] font-extrabold shrink-0"></div>
+        </div>
+        <div class="overflow-x-auto">
+          <div class="min-w-[340px]">
+            <div class="grid grid-cols-[38px_1fr_76px_52px] gap-1.5 px-2 pb-1.5 text-[10px] font-black text-slate-400">
+              <span>#</span><span>대사</span><span>감정 태그</span><span class="text-right">상태</span>
+            </div>
+            <div id="text-audit-rows" class="divide-y divide-slate-100"></div>
+          </div>
+        </div>
+        <p class="text-[10.5px] text-slate-500 leading-relaxed">노란 줄 = 중복, 빨간 줄 = 빈 칸, 주황 줄 = 14자 초과, 보라 줄 = 공백 오타입니다. 수정하면 캔버스·검수판에 바로 반영됩니다.</p>
       </div>
 
       <!-- 🏪 스토어 진열대 경쟁력 시뮬레이터 -->
@@ -1604,6 +1796,50 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         </div>
       </div>
 
+      <!-- 3-5. v5 9가지 (11/28) -->
+      <div class="bg-white rounded-2xl border border-fuchsia-200 shadow-sm p-5 space-y-3">
+        <h3 class="text-base font-extrabold text-slate-900">3-5. 11/28 v5 — 9가지 고도화</h3>
+        <p class="text-xs text-slate-500">외부에서 만든 이미지도 24컷으로 만들고, 모션·도장·대사·테두리를 한 번에 얹는 업데이트입니다.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-fuchsia-50/60 border border-fuchsia-200">
+            <h4 class="font-extrabold text-slate-900">📥 외부 이미지 24장 일괄 업로드</h4>
+            <p class="text-slate-600 mt-1">탭 2 맨 위에서 그림 최대 24장을 한 번에 골라 <b>#01~#24</b>에 파일 이름 순으로 채웁니다. 누끼·테두리·문구가 바로 적용되고 [ZIP 패키징]으로 이어집니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🤖 AI 정밀 누끼 (ONNX)</h4>
+            <p class="text-slate-600 mt-1">누끼 방식에서 <b>AI 정밀 누끼</b>를 고르면 브라우저에서 직접 배경을 지웁니다. 첫 실행만 모델(약 40MB)을 받고, 진행률이 표시됩니다. 오프라인이면 Flood-Fill로 자동 대체합니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
+            <h4 class="font-extrabold text-slate-900">🎞️ 원클릭 모션 8종</h4>
+            <p class="text-slate-600 mt-1">정지·콩콩·흔들흔들·부르르·두근두근·빙글·깜짝 줌·둥실둥실을 <b>현재 컷 또는 24컷 전체</b>에 한 번에 적용합니다. GIF·APNG·WebM 저장에 그대로 반영됩니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200">
+            <h4 class="font-extrabold text-slate-900">💬 말풍선 & 감정 도장 10종</h4>
+            <p class="text-slate-600 mt-1">둥근·외침·생각 구름 말풍선과 땀·분노·반짝이·하트·눈물·느낌표·물음표를 클릭 한 번으로 붙이고 드래그로 옮깁니다. 크기는 50~150%로 조절합니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-rose-50/60 border border-rose-200">
+            <h4 class="font-extrabold text-slate-900">🎭 대사 패키지 5세트</h4>
+            <p class="text-slate-600 mt-1">직장인 월요병·커플 애교·가족 단톡방·반려동물 집사·안부·인사를 고르면 24컷 대사와 감정 태그가 한 번에 채워집니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+            <h4 class="font-extrabold text-slate-900">🎯 1번 컷 스타일 전체 적용</h4>
+            <p class="text-slate-600 mt-1">1번 컷의 폰트·크기·색·외곽선·글씨 위치·말풍선 스타일을 23컷에 한 번에 복사합니다. 손 튜닝을 24번 반복하지 않아도 됩니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-sky-50/60 border border-sky-200">
+            <h4 class="font-extrabold text-slate-900">📱 실제 채팅방 시뮬레이터</h4>
+            <p class="text-slate-600 mt-1">탭 3에서 <b>카톡 노랑·하늘·다크</b> 배경을 고르고 이모티콘을 누르면 실제 크기(126px)로 대화창에 전송됩니다. 메시지 입력도 테마에 맞춰 보냅니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200">
+            <h4 class="font-extrabold text-slate-900">🖼️ 두꺼운 스티커 테두리 & 그림자</h4>
+            <p class="text-slate-600 mt-1">흰 스티커 외곽선을 <b>0~14px</b>로 두껍게 주고 드롭 섀도우를 켤 수 있습니다. [24장 전체 일괄 적용]으로 한 번에 맞춥니다.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-extrabold text-slate-900">🧾 24컷 대사 일람표</h4>
+            <p class="text-slate-600 mt-1">탭 3 아래 표에서 24장 대사를 한눈에 보고 <b>빈 칸·중복·길이 초과·공백 오타</b>를 색으로 확인해 그 자리에서 고칩니다.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- 4. FAQ -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-2.5">
         <h3 class="text-base font-extrabold text-slate-900">4. 자주 묻는 질문 (FAQ)</h3>
@@ -1702,6 +1938,110 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       { text: "테이프 부활!", desc: "하트 테이프 감고 반짝 부활!", prompt: "wrapped in shiny heart tape, heroic revival" }
     ];
 
+    // =========================================================================
+    // v5 상수 — 원클릭 모션 8종 · 대사 패키지 5세트 · 감정 도장 10종
+    // =========================================================================
+    const MOTION_PRESETS = [
+      { key: 'none', label: '정지', icon: '⏸' },
+      { key: 'hop', label: '콩콩 튀기', icon: '⤴' },
+      { key: 'sway', label: '흔들흔들', icon: '〰' },
+      { key: 'tremble', label: '부르르', icon: '💢' },
+      { key: 'heartbeat', label: '두근두근', icon: '💖' },
+      { key: 'spin', label: '빙글', icon: '🌀' },
+      { key: 'popzoom', label: '깜짝 줌', icon: '😮' },
+      { key: 'float', label: '둥실둥실', icon: '☁' }
+    ];
+
+    const EMO_TAGS = ['인사', '기쁨', '감사', '사과', '웃음', '부정', '분노', '슬픔', '놀람', '애교', '일상'];
+
+    // 말풍선 & 감정 도장 10종 (벡터로 그려 기기·브라우저에서 동일하게 보입니다)
+    const STAMP_KINDS = [
+      { kind: 'bubble_round', label: '둥근 말풍선', icon: '💬' },
+      { kind: 'bubble_shout', label: '외침 말풍선', icon: '🗯' },
+      { kind: 'bubble_thought', label: '생각 구름', icon: '💭' },
+      { kind: 'stamp_sweat', label: '땀방울', icon: '💧' },
+      { kind: 'stamp_anger', label: '분노마크', icon: '💢' },
+      { kind: 'stamp_sparkle', label: '반짝이', icon: '✨' },
+      { kind: 'stamp_heart', label: '하트', icon: '💖' },
+      { kind: 'stamp_tear', label: '눈물', icon: '😢' },
+      { kind: 'stamp_exclaim', label: '느낌표', icon: '❗' },
+      { kind: 'stamp_question', label: '물음표', icon: '❓' }
+    ];
+    const BUBBLE_KINDS = ['bubble_round', 'bubble_shout', 'bubble_thought'];
+
+    // 24종 인기 대사 패키지 5세트 — { t: 대사, e: 감정 태그 }
+    const TEXT_PACKAGES = {
+      monday: {
+        label: '직장인 월요병', icon: '💼',
+        items: [
+          { t: '월요일이야..', e: '일상' }, { t: '출근 완료', e: '일상' }, { t: '퇴근하고 싶다', e: '부정' },
+          { t: '넵 알겠습니다', e: '인사' }, { t: '오키 처리했어요', e: '기쁨' }, { t: '칼퇴각!', e: '기쁨' }, { t: '오늘도 최고!', e: '기쁨' },
+          { t: '감사합니다 팀장님', e: '감사' }, { t: '늦어서 죄송해요', e: '사과' }, { t: '야근 모드', e: '슬픔' }, { t: '수고하셨습니다', e: '인사' },
+          { t: 'ㅋㅋㅋ 웃겨 죽겠네', e: '웃음' }, { t: '회의 또야?', e: '놀람' }, { t: '점심 뭐 먹지', e: '일상' }, { t: '커피 한 잔의 여유', e: '기쁨' },
+          { t: '스트레스 폭발', e: '분노' }, { t: '그건 안 됩니다', e: '부정' }, { t: '부들부들..', e: '분노' },
+          { t: '칼퇴 기다리는 중', e: '일상' }, { t: '퇴근! 잘 자요', e: '인사' },
+          { t: '드디어 금요일!!', e: '기쁨' }, { t: '치킨에 맥주 콜!', e: '기쁨' },
+          { t: '일요일 밤이다..', e: '슬픔' }, { t: '월요일이 온다..', e: '슬픔' }
+        ]
+      },
+      couple: {
+        label: '커플 애교', icon: '💗',
+        items: [
+          { t: '자기야~', e: '애교' }, { t: '보고 싶어', e: '애교' }, { t: '안아줘', e: '애교' },
+          { t: '응 좋아', e: '기쁨' }, { t: '다 자기 말이 맞아', e: '애교' }, { t: '뽀뽀해 줘', e: '애교' }, { t: '자기 최고!', e: '기쁨' },
+          { t: '고마워 자기야', e: '감사' }, { t: '미안해.. 화 풀어', e: '사과' }, { t: '삐졌어', e: '부정' }, { t: '사랑해', e: '애교' },
+          { t: 'ㅋㅋㅋ 귀여워', e: '웃음' }, { t: '뭐 해? 보고 싶다', e: '애교' }, { t: '심쿵!', e: '놀람' }, { t: '오늘도 예뻐', e: '애교' },
+          { t: '서운해..', e: '슬픔' }, { t: '안 돼! 내 거야', e: '부정' }, { t: '질투난다', e: '분노' },
+          { t: '같이 먹을래?', e: '일상' }, { t: '잘 자 자기야', e: '인사' },
+          { t: '우리 처음 만난 날', e: '일상' }, { t: '지금도 설레', e: '애교' },
+          { t: '백 년 함께 해', e: '애교' }, { t: '오늘도 사랑해', e: '애교' }
+        ]
+      },
+      family: {
+        label: '가족 단톡방', icon: '👨‍👩‍👧',
+        items: [
+          { t: '엄마 나 왔어', e: '인사' }, { t: '다들 뭐 해?', e: '일상' }, { t: '출근했어~', e: '인사' },
+          { t: '응 알았어', e: '일상' }, { t: '내가 할게', e: '일상' }, { t: '좋아 좋아', e: '기쁨' }, { t: '우리 딸 최고', e: '기쁨' },
+          { t: '고마워요', e: '감사' }, { t: '늦어서 미안해', e: '사과' }, { t: '배고파..', e: '슬픔' }, { t: '건강 챙겨요', e: '인사' },
+          { t: 'ㅋㅋㅋ 아빠 웃겨', e: '웃음' }, { t: '진짜? 대박', e: '놀람' }, { t: '와~ 멋지다', e: '놀람' }, { t: '알겠습니다!', e: '인사' },
+          { t: '싫어!!', e: '부정' }, { t: '안 돼요', e: '부정' }, { t: '삐쳤어', e: '부정' },
+          { t: '저녁 뭐야?', e: '일상' }, { t: '잘 자요', e: '인사' },
+          { t: '다 같이 여행 가자', e: '기쁨' }, { t: '사진 찍자!', e: '기쁨' },
+          { t: '집에 언제 와?', e: '일상' }, { t: '기다릴게~', e: '애교' }
+        ]
+      },
+      pet: {
+        label: '반려동물 집사', icon: '🐶',
+        items: [
+          { t: '주인님 안녕!', e: '인사' }, { t: '밥 줘요', e: '일상' }, { t: '산책 가자!', e: '기쁨' },
+          { t: '응! 좋아!', e: '기쁨' }, { t: '기다렸어요', e: '애교' }, { t: '멍! 멍!', e: '기쁨' }, { t: '최고의 집사!', e: '기쁨' },
+          { t: '감사합니다 멍', e: '감사' }, { t: '미안해요..', e: '사과' }, { t: '졸려요..', e: '슬픔' }, { t: '사랑해요 집사', e: '애교' },
+          { t: 'ㅋㅋㅋ 신났다', e: '웃음' }, { t: '간식 냄새!', e: '놀람' }, { t: '우와 박수', e: '놀람' }, { t: '애교 한 방', e: '애교' },
+          { t: '화났어! 그르릉', e: '분노' }, { t: '안 돼요!', e: '부정' }, { t: '부들부들', e: '분노' },
+          { t: '산책은 언제?', e: '일상' }, { t: '잘 자요', e: '인사' },
+          { t: '현관문 열렸다!', e: '놀람' }, { t: '달려간다!!', e: '기쁨' },
+          { t: '집사 어디 갔어?', e: '슬픔' }, { t: '기다리는 중..', e: '슬픔' }
+        ]
+      },
+      hello: {
+        label: '안부·인사', icon: '🙇',
+        items: [
+          { t: '안녕하세요!', e: '인사' }, { t: '오랜만이에요', e: '인사' }, { t: '잘 지냈어요?', e: '인사' },
+          { t: '네 잘 지내요', e: '기쁨' }, { t: '다행이네요', e: '기쁨' }, { t: '좋은 하루!', e: '기쁨' }, { t: '최고예요', e: '기쁨' },
+          { t: '감사합니다', e: '감사' }, { t: '실례했어요', e: '사과' }, { t: '바빠요..', e: '일상' }, { t: '건강하세요', e: '인사' },
+          { t: 'ㅎㅎ 반가워요', e: '웃음' }, { t: '정말요?', e: '놀람' }, { t: '와 대단해요', e: '놀람' }, { t: '그럼요!', e: '기쁨' },
+          { t: '아쉽네요', e: '슬픔' }, { t: '괜찮아요', e: '일상' }, { t: '걱정돼요', e: '슬픔' },
+          { t: '식사 하셨어요?', e: '일상' }, { t: '좋은 꿈 꾸세요', e: '인사' },
+          { t: '또 연락할게요', e: '인사' }, { t: '꼭 다시 봐요', e: '인사' },
+          { t: '보고 싶었어요', e: '애교' }, { t: '안녕히 계세요', e: '인사' }
+        ]
+      }
+    };
+
+    // 누끼·외곽선·그림자·타이포 복사 목록 (v5)
+    const BULK_STYLE_KEYS = ['removeBg', 'cutoutMode', 'cutoutTol', 'despeckle', 'erode', 'strokeWidth', 'stickerBorder', 'stickerShadow', 'remaster'];
+    const TYPO_STYLE_KEYS = ['font', 'fontSize', 'textColor', 'textStroke', 'textStyle', 'textX', 'textY', 'textArch', 'textJitter', 'textSlant', 'textLayerMode', 'bubbleStyle'];
+
     const state = {
       uploadedPhotoDataUrl: null,
       turnaroundSheetDataUrl: null,
@@ -1762,7 +2102,10 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         calliStrokes: [],       // ✍️ 손글씨 획
         parts: [], // { type, x, y, size } 또는 { kind, x, y, scale, rot }
         motion: 'none',
-        particle: 'none'
+        particle: 'none',
+        stickerBorder: 0,       // 🖼️ 스티커 두꺼운 흰 테두리 (0~14px)
+        stickerShadow: false,   // 🖼️ 스티커 드롭 섀도우
+        bubbleStyle: 'none'     // 💬 글씨 뒤 말풍선: none | round | shout | thought
       };
     }
 
@@ -1775,6 +2118,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           combo: m.combo,
           desc: d.desc,
           prompt: d.prompt,
+          tag: '',                 // 🏷️ 감정 태그 (대사 패키지·일람표)
           rawImageUrl: null,
           finalImageUrl: null,
           settings: createDefaultSettings(d.text)
@@ -1995,6 +2339,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         renderReview24Grid();
         renderPromoCard();
         renderStoreShelf();
+        renderTextAuditTable();
+        setChatTheme(state.chatTheme || 'light');
       } else if (tabId === 'tab-board') {
         renderBoard();
       }
@@ -2667,6 +3013,14 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       document.getElementById('val-erode').textContent = s.erode + 'px';
       document.getElementById('ctrl-stroke').value = s.strokeWidth;
       document.getElementById('val-stroke').textContent = s.strokeWidth + 'px';
+      const sbEl = document.getElementById('ctrl-sticker-border');
+      if (sbEl) { sbEl.value = s.stickerBorder || 0; }
+      const sbVal = document.getElementById('val-sticker-border');
+      if (sbVal) sbVal.textContent = (s.stickerBorder || 0) + 'px';
+      const shEl = document.getElementById('ctrl-sticker-shadow');
+      if (shEl) shEl.checked = !!s.stickerShadow;
+      const bubEl = document.getElementById('ctrl-bubble');
+      if (bubEl) bubEl.value = s.bubbleStyle || 'none';
       document.getElementById('ctrl-remaster').value = s.remaster;
       document.getElementById('ctrl-text').value = s.text;
       document.getElementById('ctrl-font').value = s.font;
@@ -2679,6 +3033,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       document.getElementById('ctrl-jitter').checked = s.textJitter;
       document.getElementById('ctrl-motion').value = s.motion;
       document.getElementById('ctrl-particle').value = s.particle;
+      syncMotionPresetUI();
+      toggleAICutoutPanel();
       const slantEl = document.getElementById('ctrl-slant');
       if (slantEl) slantEl.value = s.textSlant || 0;
       const slantVal = document.getElementById('val-slant');
@@ -2704,13 +3060,21 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       slot.settings[key] = val;
       if (key === 'erode') document.getElementById('val-erode').textContent = val + 'px';
       if (key === 'strokeWidth') document.getElementById('val-stroke').textContent = val + 'px';
+      if (key === 'stickerBorder') { const el = document.getElementById('val-sticker-border'); if (el) el.textContent = val + 'px'; }
       if (key === 'fontSize') document.getElementById('val-fsize').textContent = val;
       if (key === 'textArch') document.getElementById('val-arch').textContent = val;
       if (key === 'textSlant') document.getElementById('val-slant').textContent = val + '°';
       if (key === 'cutoutTol') document.getElementById('val-tol').textContent = val;
+      if (key === 'cutoutMode') toggleAICutoutPanel();
+      if (key === 'motion') syncMotionPresetUI();
 
-      if (['removeBg', 'erode', 'strokeWidth', 'remaster', 'cutoutMode', 'cutoutTol', 'despeckle'].includes(key) && state.loadedRawImg) {
+      if (['removeBg', 'erode', 'strokeWidth', 'remaster', 'cutoutMode', 'cutoutTol', 'despeckle', 'stickerBorder', 'stickerShadow'].includes(key) && state.loadedRawImg) {
         state.processedCharCanvas = processCharacterCanvas(state.loadedRawImg, slot.settings);
+      }
+
+      // v5 — AI 정밀 누끼를 고르면 현재 컷에 바로 실행 (실패하면 Flood-Fill로 자동 대체)
+      if (key === 'cutoutMode' && val === 'ai' && slot.rawImageUrl) {
+        runAICutoutForCurrent(false);
       }
     }
 
@@ -2721,6 +3085,9 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     //      · 캐릭터 내부의 흰색은 테두리와 연결되지 않아 그대로 살아남는다.
     // =========================================================================
     let lastCutoutStat = { mode: 'flood', removed: 0, total: 0 };
+    // v5 — 브라우저 AI 누끼(ONNX) 결과 캐시: rawImageUrl → { img, url }
+    const AI_CUTOUT = new Map();
+    let aiCutoutBusy = false;
 
     function bgSampleColors(d, size, box) {
       const x0 = Math.max(0, Math.round((box && box.x) || 0));
@@ -2873,10 +3240,12 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       else if (s.remaster === 'flat') ctx.filter = 'saturate(1.3) contrast(1.08)';
       else ctx.filter = 'none';
 
-      ctx.drawImage(img, dx, dy, dw, dh);
+      const aiCut = (s.removeBg && s.cutoutMode === 'ai' && img.src) ? AI_CUTOUT.get(img.src) : null;
+      if (aiCut && aiCut.img) ctx.drawImage(aiCut.img, dx, dy, dw, dh);
+      else ctx.drawImage(img, dx, dy, dw, dh);
       ctx.filter = 'none';
 
-      if (s.removeBg) {
+      if (s.removeBg && !aiCut) {
         const imgData = ctx.getImageData(0, 0, size, size);
         const d = imgData.data;
         const mode = s.cutoutMode === 'color' ? 'color' : 'flood';
@@ -2918,6 +3287,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         }
         ctx.putImageData(imgData, 0, 0);
       }
+      if (aiCut) lastCutoutStat = { mode: 'ai', removed: 0, total: size * size };
 
       // 종이/크레파스 질감 오버레이
       if (s.remaster === 'paper') {
@@ -2934,29 +3304,35 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         ctx.putImageData(imgData, 0, 0);
       }
 
-      // 다크모드용 흰색 외곽선
-      if (s.strokeWidth > 0) {
-        const out = document.createElement('canvas');
-        out.width = size; out.height = size;
-        const octx = out.getContext('2d');
+      // 🖼️ v5 — 흰 테두리는 다크모드 외곽선과 같은 계열이라, 둘 중 두꺼운 값으로 그린다 (최대 14px)
+      let base = c;
+      const thick = Math.max(s.stickerBorder || 0, s.strokeWidth || 0);
+      if (thick > 0) base = addWhiteOutline(base, thick);
+      return base;
+    }
 
-        const mask = document.createElement('canvas');
-        mask.width = size; mask.height = size;
-        const mctx = mask.getContext('2d');
-        mctx.drawImage(c, 0, 0);
-        mctx.globalCompositeOperation = 'source-in';
-        mctx.fillStyle = '#ffffff';
-        mctx.fillRect(0, 0, size, size);
+    // 알파 실루엣을 px만큼 키워 흰색 테두리를 만든다 (스티커 외곽선 공통 함수)
+    function addWhiteOutline(srcCanvas, px) {
+      const size = srcCanvas.width;
+      const out = document.createElement('canvas');
+      out.width = size; out.height = size;
+      const octx = out.getContext('2d');
 
-        const steps = 16;
-        for (let i = 0; i < steps; i++) {
-          const a = (i / steps) * Math.PI * 2;
-          octx.drawImage(mask, Math.cos(a) * s.strokeWidth, Math.sin(a) * s.strokeWidth);
-        }
-        octx.drawImage(c, 0, 0);
-        return out;
+      const mask = document.createElement('canvas');
+      mask.width = size; mask.height = size;
+      const mctx = mask.getContext('2d');
+      mctx.drawImage(srcCanvas, 0, 0);
+      mctx.globalCompositeOperation = 'source-in';
+      mctx.fillStyle = '#ffffff';
+      mctx.fillRect(0, 0, size, size);
+
+      const steps = Math.max(16, Math.round(px * 2.2));
+      for (let i = 0; i < steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        octx.drawImage(mask, Math.cos(a) * px, Math.sin(a) * px);
       }
-      return c;
+      octx.drawImage(srcCanvas, 0, 0);
+      return out;
     }
 
     // 최종 600x600 합성 렌더러
@@ -2964,11 +3340,32 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       ctx.clearRect(0, 0, w, h);
 
       let tx = 0, ty = 0, rot = 0, sc = 1;
-      if (s.motion === 'bounce') ty = -Math.abs(Math.sin(t * 5)) * 28;
-      else if (s.motion === 'shake') tx = Math.sin(t * 32) * 10;
-      else if (s.motion === 'nod') { rot = Math.sin(t * 6) * 0.08; ty = Math.sin(t * 6) * 10; }
-      else if (s.motion === 'pulse') sc = 1 + Math.sin(t * 6) * 0.07;
-      else if (s.motion === 'wiggle') rot = Math.sin(t * 8) * 0.12;
+      // 🎞️ v5 — 원클릭 모션 8종 (예전 키는 같은 동작으로 매핑해 백업 호환)
+      const m = s.motion || 'none';
+      if (m === 'hop' || m === 'bounce') {
+        ty = -Math.abs(Math.sin(t * 4.2)) * 34;
+        sc = 1 + Math.max(0, Math.sin(t * 8.4)) * 0.03;
+      } else if (m === 'tremble' || m === 'shake') {
+        tx = Math.sin(t * 48) * 7;
+        rot = Math.sin(t * 41) * 0.035;
+      } else if (m === 'nod') {
+        rot = Math.sin(t * 6) * 0.08; ty = Math.sin(t * 6) * 10;
+      } else if (m === 'heartbeat' || m === 'pulse') {
+        const beat = Math.pow(Math.max(0, Math.sin(t * 5.2)), 7);
+        sc = 1 + beat * 0.11;
+      } else if (m === 'sway' || m === 'wiggle') {
+        rot = Math.sin(t * 3.2) * 0.11;
+        tx = Math.sin(t * 1.6) * 6;
+      } else if (m === 'spin') {
+        rot = (t * 3.2) % (Math.PI * 2);
+      } else if (m === 'popzoom') {
+        const pp = Math.pow((Math.sin(t * 3.4) + 1) / 2, 9);
+        sc = 1 + pp * 0.22;
+        ty = -pp * 14;
+      } else if (m === 'float') {
+        ty = Math.sin(t * 1.9) * 18;
+        rot = Math.sin(t * 1.35) * 0.05;
+      }
 
       // 1. 집중선 파츠가 있으면 배경에 먼저 그리기
       (s.parts || []).filter(p => p.type === 'SPEEDLINES').forEach(() => {
@@ -2983,13 +3380,22 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       });
 
       // 1-1. 글씨·손글씨를 캐릭터 뒤로 보내는 모드면 먼저 그린다 (입체 겹침)
+      //      v5 — 캐릭터·파츠·글씨는 모션(이동·회전)을 함께 받아 스티커 전체가 움직인다.
+      ctx.save();
+      ctx.translate(tx, ty);
+      if (rot) { ctx.translate(w / 2, h / 2); ctx.rotate(rot); ctx.translate(-w / 2, -h / 2); }
       if (s.textLayerMode === 'back') { drawCalliStrokes(ctx, s); drawTextLayer(ctx, s); }
 
       // 2. 캐릭터
       if (charCanvas) {
         ctx.save();
-        ctx.translate(w / 2 + tx, h / 2 - 22 + ty);
-        ctx.rotate(rot); ctx.scale(sc, sc);
+        ctx.translate(w / 2, h / 2 - 22);
+        ctx.scale(sc, sc);
+        if (s.stickerShadow) {
+          ctx.shadowColor = 'rgba(15,23,42,0.38)';
+          ctx.shadowBlur = 26;
+          ctx.shadowOffsetY = 16;
+        }
         ctx.drawImage(charCanvas, -charCanvas.width / 2, -charCanvas.height / 2);
         ctx.restore();
       } else {
@@ -3031,6 +3437,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       // 5. 타이포그래피 — 프리셋(외곽선·스티커·그림자·배지·네온·아치) + 기울기 + 지터
       if (s.textLayerMode !== 'back') { drawCalliStrokes(ctx, s); drawTextLayer(ctx, s); }
 
+      ctx.restore();
     }
 
 
@@ -3047,6 +3454,46 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       const widths = chars.map(ch => ctx.measureText(ch).width);
       const totalW = widths.reduce((a, b) => a + b, 0);
       const style = s.textStyle || 'outline';
+
+      // 💬 v5 — 글씨 뒤 말풍선 스타일 (없음/둥근/외침/생각 구름)
+      const bubble = s.bubbleStyle || 'none';
+      if (bubble !== 'none' && totalW > 0) {
+        const bw = Math.min(556, totalW + Math.max(48, s.fontSize * 0.95));
+        const bh = s.fontSize * 1.5 + 20;
+        ctx.save();
+        ctx.lineJoin = 'round';
+        if (bubble === 'thought') {
+          const r = bh * 0.42;
+          const puffs = [
+            [-bw / 2 + r * 0.7, 4, r * 0.72], [-bw / 4, -r * 0.5, r * 0.9],
+            [bw / 4, -r * 0.35, r * 0.85], [bw / 2 - r * 0.7, 6, r * 0.65]
+          ];
+          ctx.fillStyle = '#1e293b';
+          puffs.forEach(q => { ctx.beginPath(); ctx.arc(q[0], q[1], q[2] + 6, 0, Math.PI * 2); ctx.fill(); });
+          ctx.fillStyle = '#ffffff';
+          puffs.forEach(q => { ctx.beginPath(); ctx.arc(q[0], q[1], q[2], 0, Math.PI * 2); ctx.fill(); });
+          [[-bw / 2 + 14, bh * 0.55, 13], [-bw / 2 + 34, bh * 0.55 + 20, 9], [-bw / 2 + 48, bh * 0.55 + 34, 6]].forEach(q => {
+            ctx.beginPath(); ctx.arc(q[0], q[1], q[2], 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = '#1e293b'; ctx.stroke();
+          });
+        } else if (bubble === 'shout') {
+          ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 5;
+          ctx.beginPath();
+          const spikes = 16;
+          for (let i = 0; i < spikes * 2; i++) {
+            const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
+            const rr = i % 2 === 0 ? Math.max(bw, bh) * 0.62 : Math.max(bw, bh) * 0.46;
+            const x = Math.cos(a) * rr, y = Math.sin(a) * rr * 0.72;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-bw * 0.18, bh * 0.5); ctx.lineTo(-bw * 0.26, bh * 0.82); ctx.lineTo(-bw * 0.02, bh * 0.56); ctx.closePath(); ctx.fill(); ctx.stroke();
+        } else {
+          ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.roundRect(-bw / 2, -bh / 2, bw, bh, 30); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-bw * 0.12, bh / 2 - 4); ctx.lineTo(-bw * 0.2, bh / 2 + 26); ctx.lineTo(bw * 0.04, bh / 2 - 4); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+        ctx.restore();
+      }
 
       if (style === 'badge') {
         const padX = Math.max(18, s.fontSize * 0.34);
@@ -3353,7 +3800,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         for (let i = s.parts.length - 1; i >= 0; i--) {
           const p = s.parts[i];
           if (p.type === 'SPEEDLINES') continue;
-          if (Math.hypot(pos.x - p.x, pos.y - p.y) < 55) {
+          const hitR = (BUBBLE_KINDS.indexOf(p.kind) >= 0 ? 100 : 58) * (p.scale || 1);
+          if (Math.hypot(pos.x - p.x, pos.y - p.y) < hitR) {
             state.dragTarget = { type: 'part', index: i, ox: pos.x - p.x, oy: pos.y - p.y };
             return;
           }
@@ -3407,23 +3855,30 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     // =========================================================================
     // 8. 탭 3: 실전 검수, 콤보 이어보내기 & 1080x1080 홍보용 카드뉴스
     // =========================================================================
+    // 💬 v5 — 실제 채팅방 시뮬레이터: 카톡 노랑 / 하늘 / 다크
+    const CHAT_THEMES = {
+      light: { bg: '#bacee0', mine: '#ffffff', mineText: '#1e293b' },
+      kakao: { bg: '#fde68a', mine: '#fee500', mineText: '#3c1e1e' },
+      dark: { bg: '#18181b', mine: '#3f3f46', mineText: '#f8fafc' }
+    };
+
     function setChatTheme(theme) {
-      state.chatTheme = theme;
+      state.chatTheme = CHAT_THEMES[theme] ? theme : 'light';
+      const t = CHAT_THEMES[state.chatTheme];
       const g = document.getElementById('review-grid-wrap');
       const m = document.getElementById('mobile-chat-frame');
-      const bl = document.getElementById('chat-theme-light');
-      const bd = document.getElementById('chat-theme-dark');
-      if (theme === 'dark') {
-        g.classList.replace('bg-[#bacee0]', 'bg-[#18181b]');
-        m.classList.replace('bg-[#bacee0]', 'bg-[#18181b]');
-        bd.className = "px-3 py-1.5 rounded-lg bg-slate-900 text-white shadow-xs";
-        bl.className = "px-3 py-1.5 rounded-lg text-slate-500";
-      } else {
-        g.classList.replace('bg-[#18181b]', 'bg-[#bacee0]');
-        m.classList.replace('bg-[#18181b]', 'bg-[#bacee0]');
-        bl.className = "px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs";
-        bd.className = "px-3 py-1.5 rounded-lg text-slate-500";
-      }
+      if (g) g.style.background = t.bg;
+      if (m) m.style.background = t.bg;
+      const map = { kakao: 'chat-theme-kakao', light: 'chat-theme-light', dark: 'chat-theme-dark' };
+      Object.keys(map).forEach(function (k) {
+        const el = document.getElementById(map[k]);
+        if (!el) return;
+        if (k === state.chatTheme) {
+          el.className = 'px-2.5 py-1.5 rounded-lg bg-white shadow-xs ' + (k === 'kakao' ? 'text-amber-900' : 'text-slate-800');
+        } else {
+          el.className = 'px-2.5 py-1.5 rounded-lg text-slate-500';
+        }
+      });
     }
 
     function renderReview24Grid() {
@@ -3441,10 +3896,29 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       if (!slot.finalImageUrl) { showToast('먼저 상단의 [빠른 체험] 또는 슬롯 생성을 진행해 주세요.', 'warn'); return; }
       const box = document.getElementById('chat-messages');
       const row = document.createElement('div');
-      row.className = "flex justify-end";
-      row.innerHTML = `<img src="${slot.finalImageUrl}" class="w-28 h-28 object-contain"/>`;
+      row.className = 'flex flex-col items-end gap-0.5';
+      const now = new Date();
+      const hh = now.getHours() % 12 === 0 ? 12 : now.getHours() % 12;
+      const time = (now.getHours() < 12 ? '오전 ' : '오후 ') + hh + ':' + String(now.getMinutes()).padStart(2, '0');
+      row.innerHTML = '<img src="' + slot.finalImageUrl + '" class="w-[126px] h-[126px] object-contain chat-sticker-msg" alt="' + esc(slot.settings.text) + '" />' +
+        '<span class="text-[9px] ' + (state.chatTheme === 'dark' ? 'text-slate-400' : 'text-slate-600') + '">' + time + ' · 나</span>';
       box.appendChild(row);
       box.scrollTop = box.scrollHeight;
+    }
+
+    // v5 — 시뮬레이터에서 직접 타이핑한 메시지도 테마에 맞춰 보낸다
+    function sendChatText() {
+      const input = document.getElementById('chat-input');
+      const text = ((input && input.value) || '').trim();
+      if (!text) return;
+      const t = CHAT_THEMES[state.chatTheme] || CHAT_THEMES.light;
+      const box = document.getElementById('chat-messages');
+      const row = document.createElement('div');
+      row.className = 'flex justify-end';
+      row.innerHTML = '<div style="background:' + t.mine + ';color:' + t.mineText + ';" class="px-3 py-2 rounded-2xl rounded-tr-none shadow-xs leading-relaxed max-w-[80%] break-words">' + esc(text) + '</div>';
+      box.appendChild(row);
+      box.scrollTop = box.scrollHeight;
+      input.value = '';
     }
 
     function sendComboPair(idxA, idxB) {
@@ -3732,6 +4206,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         slot.desc = it.desc;
         slot.prompt = it.prompt;
         slot.settings.text = it.text;
+        slot.tag = '';
       });
       renderPlanSlotsGrid();
       renderStudioThumbGrid();
@@ -4336,6 +4811,11 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       ctx.scale(sc, sc);
       const kind = p.kind;
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      if (kind && (kind.indexOf('bubble_') === 0 || kind.indexOf('stamp_') === 0)) {
+        drawStampVector(ctx, kind);
+        ctx.restore();
+        return;
+      }
       if (kind === 'eye_sparkle') {
         ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(-44, 0, 15, 0, Math.PI * 2); ctx.arc(44, 0, 15, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(-49, -5, 5.5, 0, Math.PI * 2); ctx.arc(39, -5, 5.5, 0, Math.PI * 2); ctx.fill();
@@ -4368,6 +4848,105 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         ctx.font = '64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✨', 0, 0);
       }
       ctx.restore();
+    }
+
+    // --------------------------------------------- v5 말풍선 & 감정 도장 벡터
+    function drawStampVector(ctx, kind) {
+      const ink = '#1e293b';
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+      const teardrop = function (color, stroke) {
+        ctx.beginPath();
+        ctx.moveTo(0, -64);
+        ctx.bezierCurveTo(34, -22, 48, 4, 48, 20);
+        ctx.bezierCurveTo(48, 48, 26, 64, 0, 64);
+        ctx.bezierCurveTo(-26, 64, -48, 48, -48, 20);
+        ctx.bezierCurveTo(-48, 4, -34, -22, 0, -64);
+        ctx.closePath();
+        ctx.fillStyle = color; ctx.fill();
+        ctx.strokeStyle = stroke; ctx.lineWidth = 5; ctx.stroke();
+      };
+      const star4 = function (r, ri) {
+        ctx.beginPath();
+        ctx.moveTo(0, -r);
+        ctx.quadraticCurveTo(ri, -ri, r, 0);
+        ctx.quadraticCurveTo(ri, ri, 0, r);
+        ctx.quadraticCurveTo(-ri, ri, -r, 0);
+        ctx.quadraticCurveTo(-ri, -ri, 0, -r);
+        ctx.closePath();
+      };
+      const vein = function (pts) {
+        ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
+        ctx.quadraticCurveTo(pts[2], pts[3], pts[4], pts[5]);
+        ctx.stroke();
+      };
+
+      if (kind === 'bubble_round') {
+        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = ink; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.roundRect(-88, -58, 176, 96, 30); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-18, 36); ctx.lineTo(-32, 68); ctx.lineTo(8, 38); ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else if (kind === 'bubble_shout') {
+        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = ink; ctx.lineWidth = 6;
+        ctx.beginPath();
+        const spikes = 14;
+        for (let i = 0; i < spikes * 2; i++) {
+          const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
+          const rr = i % 2 === 0 ? 104 : 76;
+          const x = Math.cos(a) * rr, y = Math.sin(a) * rr * 0.78;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-50, 58); ctx.lineTo(-72, 96); ctx.lineTo(-24, 70); ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else if (kind === 'bubble_thought') {
+        const puffs = [[-62, 6, 40], [-24, -26, 44], [22, -18, 40], [58, 8, 34], [-90, 12, 24]];
+        ctx.fillStyle = ink;
+        puffs.forEach(function (q) { ctx.beginPath(); ctx.arc(q[0], q[1], q[2] + 5, 0, Math.PI * 2); ctx.fill(); });
+        ctx.fillStyle = '#ffffff';
+        puffs.forEach(function (q) { ctx.beginPath(); ctx.arc(q[0], q[1], q[2], 0, Math.PI * 2); ctx.fill(); });
+        [[-16, 56, 14], [6, 76, 9], [22, 90, 6]].forEach(function (q) {
+          ctx.beginPath(); ctx.arc(q[0], q[1], q[2], 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+          ctx.lineWidth = 4; ctx.strokeStyle = ink; ctx.stroke();
+        });
+      } else if (kind === 'stamp_sweat') {
+        teardrop('#7dd3fc', '#0369a1');
+        ctx.beginPath(); ctx.ellipse(-14, -4, 9, 13, -0.3, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+      } else if (kind === 'stamp_anger') {
+        ctx.lineCap = 'round';
+        const veins = [[-40, -16, -20, -44, -4, -12], [8, -12, 22, -42, 42, -18], [-8, 4, -38, 24, -14, 44], [6, 8, 28, 34, 46, 12]];
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 18;
+        veins.forEach(vein);
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 10;
+        veins.forEach(vein);
+      } else if (kind === 'stamp_sparkle') {
+        ctx.fillStyle = '#fde047'; ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 5;
+        star4(62, 16); ctx.fill(); ctx.stroke();
+        ctx.save(); ctx.translate(58, -52); star4(26, 7); ctx.fill(); ctx.stroke(); ctx.restore();
+      } else if (kind === 'stamp_heart') {
+        ctx.beginPath();
+        ctx.moveTo(0, 54);
+        ctx.bezierCurveTo(-64, 12, -58, -40, -24, -44);
+        ctx.bezierCurveTo(-8, -46, 0, -32, 0, -22);
+        ctx.bezierCurveTo(0, -32, 8, -46, 24, -44);
+        ctx.bezierCurveTo(58, -40, 64, 12, 0, 54);
+        ctx.closePath();
+        ctx.fillStyle = '#fb7185'; ctx.fill(); ctx.strokeStyle = '#be123c'; ctx.lineWidth = 5; ctx.stroke();
+      } else if (kind === 'stamp_tear') {
+        ctx.save(); teardrop('#38bdf8', '#0369a1'); ctx.restore();
+        ctx.save(); ctx.translate(-58, 38); ctx.scale(0.5, 0.5); teardrop('#7dd3fc', '#0369a1'); ctx.restore();
+        ctx.save(); ctx.translate(52, 46); ctx.scale(0.42, 0.42); teardrop('#7dd3fc', '#0369a1'); ctx.restore();
+      } else if (kind === 'stamp_exclaim') {
+        ctx.font = '900 150px "Black Han Sans", "Noto Sans KR", sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = 22; ctx.strokeStyle = '#ffffff'; ctx.strokeText('!', 0, 0);
+        ctx.fillStyle = '#f43f5e'; ctx.fillText('!', 0, 0);
+      } else if (kind === 'stamp_question') {
+        ctx.font = '900 140px "Black Han Sans", "Noto Sans KR", sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = 22; ctx.strokeStyle = '#ffffff'; ctx.strokeText('?', 0, 0);
+        ctx.fillStyle = '#6366f1'; ctx.fillText('?', 0, 0);
+      } else {
+        ctx.font = '64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✨', 0, 0);
+      }
     }
 
     // --------------------------------------------- 손글씨(캘리그라피) 패드
@@ -4566,7 +5145,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         presetKey: state.presetKey, imageEngine: state.imageEngine, pollSeed: state.pollSeed,
         sheetPreviewUrl: state.sheetPreviewUrl,
         slots: state.slots.map(function (s) {
-          return { id: s.id, category: s.category, combo: s.combo, desc: s.desc, prompt: s.prompt, rawImageUrl: s.rawImageUrl, finalImageUrl: s.finalImageUrl, settings: s.settings };
+          return { id: s.id, category: s.category, combo: s.combo, desc: s.desc, prompt: s.prompt, tag: s.tag || '', rawImageUrl: s.rawImageUrl, finalImageUrl: s.finalImageUrl, settings: s.settings };
         })
       };
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
@@ -4593,6 +5172,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
             if (!target) return;
             target.desc = src.desc || target.desc;
             target.prompt = src.prompt || target.prompt;
+            target.tag = src.tag || '';
             target.rawImageUrl = src.rawImageUrl || null;
             target.finalImageUrl = src.finalImageUrl || null;
             target.settings = Object.assign(createDefaultSettings(src.settings && src.settings.text), src.settings || {});
@@ -4612,6 +5192,435 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       };
       r.readAsText(f);
       e.target.value = '';
+    }
+
+    // =========================================================================
+    // v5 — 1) 외부 이미지 24장 일괄 업로드
+    // =========================================================================
+    function readImageFileAsDataURL(file) {
+      return new Promise(function (resolve, reject) {
+        const r = new FileReader();
+        r.onload = function (ev) { resolve(String(ev.target.result)); };
+        r.onerror = function () { reject(new Error('이미지를 읽지 못했습니다: ' + file.name)); };
+        r.readAsDataURL(file);
+      });
+    }
+
+    function sortImageFiles(list) {
+      return list.slice().sort(function (a, b) {
+        return String(a.name).localeCompare(String(b.name), 'ko', { numeric: true, sensitivity: 'base' });
+      });
+    }
+
+    function setBulkProgress(done, total, text) {
+      const box = document.getElementById('bulk-progress');
+      const bar = document.getElementById('bulk-progress-bar');
+      const pctEl = document.getElementById('bulk-progress-pct');
+      const txt = document.getElementById('bulk-progress-text');
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      if (box) box.classList.remove('hidden');
+      if (bar) bar.style.width = pct + '%';
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (txt && text) txt.textContent = text;
+    }
+
+    async function handleBulkImageUpload(e) {
+      const files = Array.from((e.target && e.target.files) || []);
+      if (e.target) e.target.value = '';
+      await processBulkFiles(files);
+    }
+
+    async function processBulkFiles(files) {
+      const imgs = sortImageFiles((files || []).filter(function (f) { return f && String(f.type || '').indexOf('image/') === 0; }));
+      if (!imgs.length) { showToast('PNG·JPG 같은 이미지 파일을 골라 주세요.', 'warn'); return; }
+      if (state.bulkBusy) { showToast('이미 일괄 업로드 중입니다. 잠시만 기다려 주세요.', 'info'); return; }
+      state.bulkBusy = true;
+      const list = imgs.slice(0, 24);
+      const srcSlot = state.slots[state.selectedSlotIndex] || state.slots[0];
+      const srcSettings = srcSlot ? srcSlot.settings : createDefaultSettings();
+      const copyStyle = !!(document.getElementById('bulk-copy-style') && document.getElementById('bulk-copy-style').checked);
+      const keepText = !!(document.getElementById('bulk-keep-text') && document.getElementById('bulk-keep-text').checked);
+      const copied = {};
+      BULK_STYLE_KEYS.concat(TYPO_STYLE_KEYS).forEach(function (k) { copied[k] = srcSettings[k]; });
+      // AI 누끼는 컷별로 모델을 돌려야 해서, 일괄 업로드는 안전하게 Flood-Fill로 시작한다.
+      if (copied.cutoutMode === 'ai') copied.cutoutMode = 'flood';
+      const zipBtn = document.getElementById('bulk-zip-btn');
+      if (zipBtn) zipBtn.classList.add('hidden');
+      setBulkProgress(0, list.length, '이미지 읽는 중...');
+      let ok = 0;
+      try {
+        for (let i = 0; i < list.length; i++) {
+          const slot = state.slots[i];
+          if (!slot) break;
+          try {
+            const url = await readImageFileAsDataURL(list[i]);
+            slot.rawImageUrl = url;
+            slot.fileName = list[i].name;
+            if (copyStyle) {
+              Object.keys(copied).forEach(function (k) {
+                if (copied[k] !== undefined) slot.settings[k] = copied[k];
+              });
+            }
+            if (!keepText) slot.settings.text = '';
+            slot.finalImageUrl = await renderSlotSnapshot(slot);
+            ok++;
+          } catch (err) {
+            console.warn('[bulk]', list[i] && list[i].name, err);
+          }
+          setBulkProgress(i + 1, list.length, '#' + String(i + 1).padStart(2, '0') + ' 누끼·외곽선·문구 적용 중...');
+          await new Promise(function (r) { setTimeout(r, 0); });
+        }
+        renderPlanSlotsGrid();
+        renderStudioThumbGrid();
+        renderReview24Grid();
+        renderBoard();
+        updateDoneCount();
+        renderTextAuditTable();
+        loadSelectedSlotToStudio();
+        const zipBtn2 = document.getElementById('bulk-zip-btn');
+        if (zipBtn2 && ok) zipBtn2.classList.remove('hidden');
+        showToast(ok + '장 업로드 완료 — 누끼·외곽선·문구까지 적용했습니다.', 'success');
+      } finally {
+        state.bulkBusy = false;
+      }
+    }
+
+    function goZipAfterBulk() {
+      switchTab('tab-export');
+      const el = document.getElementById('panel-multizip');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showToast('플랫폼을 고르고 [ZIP 내려받기]를 누르면 24컷이 한 번에 패키징됩니다.', 'info');
+    }
+
+    // =========================================================================
+    // v5 — 2) 브라우저 AI 정밀 누끼 (ONNX/WASM · @imgly/background-removal)
+    // =========================================================================
+    function toggleAICutoutPanel() {
+      const sel = document.getElementById('ctrl-cutout');
+      const panel = document.getElementById('ai-cutout-panel');
+      if (!sel || !panel) return;
+      panel.classList.toggle('hidden', sel.value !== 'ai');
+    }
+
+    function setAIStatus(msg, pct) {
+      const s = document.getElementById('ai-cutout-status');
+      const p = document.getElementById('ai-cutout-pct');
+      const b = document.getElementById('ai-cutout-bar');
+      const v = Math.max(0, Math.min(100, Math.round(pct || 0)));
+      if (s) s.textContent = msg;
+      if (p) p.textContent = v + '%';
+      if (b) b.style.width = v + '%';
+    }
+
+    let bgRemovalLibPromise = null;
+    function loadBgRemovalLib() {
+      if (bgRemovalLibPromise) return bgRemovalLibPromise;
+      bgRemovalLibPromise = import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm').then(function (mod) {
+        if (!mod || typeof mod.removeBackground !== 'function') throw new Error('AI 누끼 모듈을 읽지 못했습니다.');
+        return mod;
+      });
+      bgRemovalLibPromise.catch(function () { bgRemovalLibPromise = null; });
+      return bgRemovalLibPromise;
+    }
+
+    async function runAICutoutForCurrent(force) {
+      const slot = state.slots[state.selectedSlotIndex];
+      if (!slot || !slot.rawImageUrl) { showToast('먼저 이미지를 생성하거나 업로드해 주세요.', 'warn'); return; }
+      if (aiCutoutBusy) { showToast('AI 누끼를 이미 계산 중입니다. 잠시만 기다려 주세요.', 'info'); return; }
+      const url = slot.rawImageUrl;
+      if (AI_CUTOUT.has(url) && !force) {
+        setAIStatus('AI 정밀 누끼 적용 완료', 100);
+        if (state.loadedRawImg) state.processedCharCanvas = processCharacterCanvas(state.loadedRawImg, slot.settings);
+        return;
+      }
+      aiCutoutBusy = true;
+      toggleAICutoutPanel();
+      setAIStatus('AI 모델 준비 중… (첫 실행 약 40MB)', 1);
+      try {
+        const mod = await loadBgRemovalLib();
+        setAIStatus('이미지 준비 중…', 3);
+        const blob = await (await fetch(url)).blob();
+        const out = await mod.removeBackground(blob, {
+          model: 'isnet_fp16',
+          output: { format: 'image/png' },
+          progress: function (key, cur, tot) {
+            const pct = tot ? Math.round((cur / tot) * 100) : 0;
+            const k = String(key || '');
+            const label = k.indexOf('fetch') === 0 ? 'AI 모델 내려받는 중' : (k.indexOf('compute') === 0 ? 'AI 누끼 계산 중' : 'AI 준비 중');
+            setAIStatus(label + '…', pct || 1);
+          }
+        });
+        const objUrl = URL.createObjectURL(out);
+        const img = await loadImageEl(objUrl);
+        AI_CUTOUT.set(url, { img: img, url: objUrl });
+        setAIStatus('AI 정밀 누끼 적용 완료', 100);
+        loadSelectedSlotToStudio();
+        slot.finalImageUrl = await renderSlotSnapshot(slot);
+        renderStudioThumbGrid();
+        renderPlanSlotsGrid();
+        renderReview24Grid();
+        renderBoard();
+        updateDoneCount();
+        showToast('AI 정밀 누끼를 적용했습니다.', 'success');
+      } catch (err) {
+        console.warn('[AI cutout]', err);
+        setAIStatus('AI 누끼 실패 — Flood-Fill로 자동 대체', 0);
+        const cur = state.slots[state.selectedSlotIndex];
+        if (cur) {
+          cur.settings.cutoutMode = 'flood';
+          const sel = document.getElementById('ctrl-cutout');
+          if (sel) sel.value = 'flood';
+          if (state.loadedRawImg) state.processedCharCanvas = processCharacterCanvas(state.loadedRawImg, cur.settings);
+        }
+        showToast('AI 누끼를 불러오지 못했습니다(오프라인·CDN 차단). 외곽 추적 Flood-Fill로 안전하게 대체했습니다.', 'warn');
+      } finally {
+        aiCutoutBusy = false;
+      }
+    }
+
+    // =========================================================================
+    // v5 — 3) 원클릭 모션 8종 · 4) 말풍선/도장 10종 · 5) 대사 패키지 5세트
+    //         6) 1번 컷 스타일 복사 · 8) 스티커 테두리/그림자 일괄
+    // =========================================================================
+    async function renderAllSlots(opts) {
+      opts = opts || {};
+      const loader = document.getElementById('studio-loader');
+      const msg = document.getElementById('studio-loader-msg');
+      const label = opts.label || '24컷 완성본을 다시 그리는 중...';
+      if (loader && !opts.quiet) {
+        if (msg) msg.textContent = label;
+        loader.classList.remove('hidden');
+      }
+      for (let i = 0; i < state.slots.length; i++) {
+        if (state.slots[i].rawImageUrl) {
+          state.slots[i].finalImageUrl = await renderSlotSnapshot(state.slots[i]);
+        }
+        if (msg && !opts.quiet && i % 4 === 0) msg.textContent = label + ' (' + (i + 1) + '/24)';
+        await new Promise(function (r) { setTimeout(r, 0); });
+      }
+      if (loader && !opts.quiet) loader.classList.add('hidden');
+      renderPlanSlotsGrid();
+      renderStudioThumbGrid();
+      renderReview24Grid();
+      renderBoard();
+      updateDoneCount();
+      renderTextAuditTable();
+      if (!opts.keepStudio) loadSelectedSlotToStudio();
+    }
+
+    function setMotionScope(scope) {
+      state.motionScope = scope === 'all' ? 'all' : 'current';
+      const a = document.getElementById('motion-scope-current');
+      const b = document.getElementById('motion-scope-all');
+      if (a) { a.classList.toggle('active', state.motionScope === 'current'); a.classList.toggle('text-slate-500', state.motionScope !== 'current'); }
+      if (b) { b.classList.toggle('active', state.motionScope === 'all'); b.classList.toggle('text-slate-500', state.motionScope !== 'all'); }
+    }
+
+    function syncMotionPresetUI() {
+      const slot = state.slots[state.selectedSlotIndex];
+      const cur = (slot && slot.settings.motion) || 'none';
+      document.querySelectorAll('#motion-preset-grid [data-motion]').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.motion === cur);
+      });
+    }
+
+    function motionLabel(key) {
+      const hit = MOTION_PRESETS.filter(function (m) { return m.key === key; })[0];
+      return hit ? hit.label : key;
+    }
+
+    function applyMotionPreset(key) {
+      const scope = state.motionScope || 'current';
+      const withHeart = key === 'heartbeat';
+      if (scope === 'all') {
+        state.slots.forEach(function (slot) {
+          slot.settings.motion = key;
+          if (withHeart) slot.settings.particle = 'heart';
+        });
+        const sel = document.getElementById('ctrl-motion');
+        if (sel) sel.value = key;
+        const ps = document.getElementById('ctrl-particle');
+        if (ps && withHeart) ps.value = 'heart';
+        syncMotionPresetUI();
+        showToast('24컷 전체에 [' + motionLabel(key) + '] 모션을 적용했습니다. GIF·APNG·WebM 저장에 반영됩니다.', 'success');
+        return;
+      }
+      const slot = state.slots[state.selectedSlotIndex];
+      if (!slot) return;
+      slot.settings.motion = key;
+      if (withHeart) slot.settings.particle = 'heart';
+      const sel = document.getElementById('ctrl-motion');
+      if (sel) sel.value = key;
+      const ps = document.getElementById('ctrl-particle');
+      if (ps) ps.value = slot.settings.particle || 'none';
+      syncMotionPresetUI();
+      if (slot.rawImageUrl) commitCurrentSlot(); else renderStudioThumbGrid();
+      showToast('#' + String(slot.id).padStart(2, '0') + '에 [' + motionLabel(key) + '] 모션을 적용했습니다.', 'success');
+    }
+
+    function addStamp(kind) {
+      const slot = state.slots[state.selectedSlotIndex];
+      if (!slot) return;
+      if (!slot.settings.parts) slot.settings.parts = [];
+      const sizeEl = document.getElementById('stamp-size');
+      const scale = Math.max(0.5, Math.min(1.5, (Number(sizeEl && sizeEl.value) || 100) / 100));
+      const n = slot.settings.parts.length;
+      slot.settings.parts.push({ kind: kind, x: 300 + ((n % 3) - 1) * 84, y: 190 + (n % 3) * 52, scale: scale, rot: 0 });
+      if (slot.rawImageUrl) commitCurrentSlot(); else renderStudioThumbGrid();
+      const hit = STAMP_KINDS.filter(function (k) { return k.kind === kind; })[0];
+      showToast((hit ? hit.label : '도장') + '을 붙였습니다 — 캔버스에서 끌어 옮기세요.', 'success');
+    }
+
+    async function applyTextPackage(key) {
+      const pack = TEXT_PACKAGES[key];
+      if (!pack) return;
+      pack.items.forEach(function (it, i) {
+        const slot = state.slots[i];
+        if (!slot) return;
+        slot.settings.text = it.t;
+        slot.tag = it.e;
+      });
+      state.presetKey = 'pkg-' + key;
+      document.querySelectorAll('[data-preset]').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('#text-package-buttons button').forEach(function (b) {
+        const hit = String(b.getAttribute('onclick') || '').indexOf("'" + key + "'") >= 0;
+        b.classList.toggle('active', hit);
+      });
+      renderPlanSlotsGrid();
+      renderTextAuditTable();
+      loadSelectedSlotToStudio();
+      if (state.slots.some(function (s) { return !!s.rawImageUrl; })) {
+        showToast(pack.label + ' 패키지 적용 — 24컷 완성본을 다시 그립니다...', 'info');
+        await renderAllSlots({ label: pack.label + ' 대사 반영 중...' });
+      }
+      showToast(pack.label + ' 24종 대사·감정 태그를 적용했습니다.', 'success');
+    }
+
+    async function applyStickerFrameToAll24() {
+      const cur = state.slots[state.selectedSlotIndex];
+      if (!cur) return;
+      const b = cur.settings.stickerBorder || 0;
+      const sh = !!cur.settings.stickerShadow;
+      state.slots.forEach(function (s) { s.settings.stickerBorder = b; s.settings.stickerShadow = sh; });
+      showToast('24장에 테두리 ' + b + 'px · 그림자 ' + (sh ? 'ON' : 'OFF') + '을 일괄 적용합니다...', 'info');
+      await renderAllSlots({ label: '스티커 테두리·그림자 일괄 적용 중...' });
+      showToast('24장 전체에 스티커 테두리·그림자를 적용했습니다.', 'success');
+    }
+
+    async function copyStyleFromFirstSlot() {
+      const src = state.slots[0];
+      if (!src) return;
+      const keys = TYPO_STYLE_KEYS.concat(['strokeWidth', 'stickerBorder', 'stickerShadow']);
+      const picked = {};
+      keys.forEach(function (k) { picked[k] = src.settings[k]; });
+      for (let i = 1; i < state.slots.length; i++) {
+        Object.keys(picked).forEach(function (k) {
+          if (picked[k] !== undefined) state.slots[i].settings[k] = picked[k];
+        });
+      }
+      showToast('1번 컷 스타일을 23컷에 복사합니다...', 'info');
+      await renderAllSlots({ label: '1번 컷 스타일 복사 중...' });
+      showToast('폰트·크기·색·외곽선·글씨 위치·말풍선 스타일을 23컷에 복사했습니다.', 'success');
+    }
+
+    // =========================================================================
+    // v5 — 9) 24컷 대사·중복·오타 일람표
+    // =========================================================================
+    function textAuditInfo() {
+      const norm = function (t) { return String(t || '').replace(/\s+/g, '').toLowerCase(); };
+      const counts = {};
+      state.slots.forEach(function (s) {
+        const k = norm(s.settings.text);
+        if (!k) return;
+        counts[k] = (counts[k] || 0) + 1;
+      });
+      const rows = state.slots.map(function (slot) {
+        const t = String(slot.settings.text || '');
+        const n = norm(t);
+        if (!t.trim()) return { code: 'blank', label: '빈 칸' };
+        if (counts[n] > 1) return { code: 'dup', label: '중복' };
+        if (Array.from(t).length > 14) return { code: 'long', label: '길이 초과' };
+        if (/^\s|\s$|\s{2,}/.test(t)) return { code: 'space', label: '공백 오타' };
+        return { code: 'ok', label: '정상' };
+      });
+      const tally = { blank: 0, dup: 0, long: 0, space: 0 };
+      rows.forEach(function (r) { if (tally[r.code] !== undefined) tally[r.code]++; });
+      return { rows: rows, tally: tally };
+    }
+
+    function emoOptionsHtml(selected) {
+      return EMO_TAGS.map(function (t) {
+        return '<option value="' + t + '"' + (t === selected ? ' selected' : '') + '>' + t + '</option>';
+      }).join('');
+    }
+
+    function updateAuditSummary(info) {
+      const box = document.getElementById('audit-summary');
+      if (!box) return;
+      const t = info.tally;
+      const chip = function (n, label, cls) {
+        return '<span class="px-2 py-0.5 rounded-full ' + (n ? cls : 'bg-slate-100 text-slate-500') + '">' + label + ' ' + n + '</span>';
+      };
+      const allOk = !t.blank && !t.dup && !t.long && !t.space;
+      box.innerHTML = (allOk ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">🟢 문제 없음</span>' : '') +
+        chip(t.blank, '빈 칸', 'bg-rose-100 text-rose-700') +
+        chip(t.dup, '중복', 'bg-amber-100 text-amber-700') +
+        chip(t.long, '길이 초과', 'bg-orange-100 text-orange-700') +
+        chip(t.space, '공백 오타', 'bg-violet-100 text-violet-700');
+    }
+
+    function renderTextAuditTable() {
+      const host = document.getElementById('text-audit-rows');
+      if (!host) return;
+      const info = textAuditInfo();
+      host.innerHTML = state.slots.map(function (slot, i) {
+        const r = info.rows[i];
+        const rowCls = 'audit-row' + (r.code === 'ok' ? '' : ' audit-' + r.code) + ' grid grid-cols-[38px_1fr_76px_52px] gap-1.5 items-center px-2 py-1.5';
+        return '<div class="' + rowCls + '" data-audit-row="' + i + '">' +
+          '<span class="text-[10px] font-black text-slate-500">#' + String(slot.id).padStart(2, '0') + '</span>' +
+          '<input class="audit-input w-full px-1.5 py-1 rounded border border-slate-200 bg-white text-[11px] font-bold text-slate-800" value="' + esc(slot.settings.text || '') + '" oninput="onAuditInput(' + i + ', this.value)" onchange="commitAuditRow(' + i + ')" />' +
+          '<select class="w-full px-1 py-1 rounded border border-slate-200 bg-white text-[10px] font-bold text-slate-700" onchange="state.slots[' + i + '].tag=this.value">' +
+            '<option value="">—</option>' + emoOptionsHtml(slot.tag || '') +
+          '</select>' +
+          '<span class="audit-status text-right text-[10px] font-black" data-status>' + r.label + '</span>' +
+        '</div>';
+      }).join('');
+      updateAuditSummary(info);
+    }
+
+    function refreshAuditStatuses() {
+      const info = textAuditInfo();
+      state.slots.forEach(function (slot, i) {
+        const row = document.querySelector('[data-audit-row="' + i + '"]');
+        if (!row) return;
+        row.classList.remove('audit-blank', 'audit-dup', 'audit-long', 'audit-space');
+        const r = info.rows[i];
+        if (r.code !== 'ok') row.classList.add('audit-' + r.code);
+        const st = row.querySelector('[data-status]');
+        if (st) st.textContent = r.label;
+      });
+      updateAuditSummary(info);
+    }
+
+    function onAuditInput(i, val) {
+      const slot = state.slots[i];
+      if (!slot) return;
+      slot.settings.text = val;
+      refreshAuditStatuses();
+    }
+
+    async function commitAuditRow(i) {
+      const slot = state.slots[i];
+      if (!slot) return;
+      refreshAuditStatuses();
+      if (slot.rawImageUrl) {
+        slot.finalImageUrl = await renderSlotSnapshot(slot);
+        renderStudioThumbGrid();
+        renderReview24Grid();
+        renderBoard();
+        updateDoneCount();
+      }
+      renderPlanSlotsGrid();
     }
 
     // =========================================================================
@@ -4637,7 +5646,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js?v=20261127v4').catch(function () {});
+        navigator.serviceWorker.register('sw.js?v=20261128v5').catch(function () {});
       });
     }
 
@@ -4657,6 +5666,11 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       renderImageEngineUI();   // 🎛️ 이미지 엔진 칩(자동/무료) 초기 표시
       updateSheetUI();         // 🧩 3×3 시트 미리보기 상태
       renderStoreShelf();      // 🏪 스토어 진열대 시뮬레이터
+      renderTextAuditTable();  // v5 — 24컷 대사 일람표
+      toggleAICutoutPanel();   // v5 — AI 누끼 진행률 패널
+      setMotionScope('current');
+      syncMotionPresetUI();
+      setChatTheme('light');
       updateDoneCount();
       renderBoard();
       lucide.createIcons();
@@ -4674,6 +5688,19 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
           r.readAsDataURL(f);
         }
       });
+
+      // v5 — 24장 일괄 업로드 드래그 앤 드롭
+      const bdz = document.getElementById('bulk-dropzone');
+      if (bdz) {
+        bdz.addEventListener('dragover', e => { e.preventDefault(); bdz.classList.add('drag-on'); });
+        bdz.addEventListener('dragleave', () => bdz.classList.remove('drag-on'));
+        bdz.addEventListener('drop', async e => {
+          e.preventDefault();
+          bdz.classList.remove('drag-on');
+          const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+          if (files.length) await processBulkFiles(files);
+        });
+      }
 
       initServerStatus();
     };
