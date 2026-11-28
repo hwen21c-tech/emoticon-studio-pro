@@ -8,7 +8,7 @@
   <meta id="metaThemeColor" name="theme-color" content="#4f46e5" />
 
   <!-- ===== 홈 화면 독립 앱 설치(PWA) ===== -->
-  <link rel="manifest" href="manifest.json?v=20261128v5" />
+  <link rel="manifest" href="manifest.json?v=20261128v6" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -164,6 +164,11 @@
     /* ===== 검수 보드 · 타이포 프리셋 · 기타 ===== */
     .preset-btn { transition: all .12s ease; }
     .preset-btn.active { background: #4f46e5 !important; color: #fff !important; border-color: #4338ca !important; }
+    /* v6 — 캐릭터 종·말투 칩 */
+    .dna-chip { transition: all .12s ease; line-height: 1.15; }
+    .dna-chip.active { background: #d97706 !important; color: #fff !important; border-color: #b45309 !important; box-shadow: 0 2px 6px rgba(180,83,9,.25); }
+    .tone-chip { transition: all .12s ease; }
+    .tone-chip.active { background: #0284c7 !important; color: #fff !important; border-color: #0369a1 !important; box-shadow: 0 2px 6px rgba(3,105,161,.25); }
     .board-cell { position: relative; overflow: hidden; border-radius: 12px; }
     .board-cell img { width: 100%; height: 100%; object-fit: contain; }
     .board-dark .board-cell { background: #111111; }
@@ -559,6 +564,16 @@ html.theme-dark .emo-fold .emo-arw{color:#64748b}
               </label>
             </div>
 
+            <!-- 🐾 v6 — 캐릭터·동물 종 12종 (귀·코·꼬리·체형 영문 DNA 연동) -->
+            <div class="rounded-xl border border-amber-200 bg-amber-50/60 p-3 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-1">
+                <h3 class="text-xs font-black text-amber-900 flex items-center gap-1.5">🐾 캐릭터·동물 종 12종</h3>
+                <span id="species-status" class="text-[10px] font-bold text-amber-700">사진 그대로 · 종 미지정</span>
+              </div>
+              <div class="grid grid-cols-3 sm:grid-cols-4 gap-1.5" id="species-chips"><!-- JS 렌더링 --></div>
+              <p class="text-[10px] text-amber-800/80 leading-snug">종을 고르면 <b>귀·코·꼬리·체형 영문 DNA</b>가 캐릭터 시트·24종 생성·AI 기획 프롬프트에 함께 실려 나갑니다.</p>
+            </div>
+
             <!-- 의인화 스타일 & 화풍 프리셋 -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -600,7 +615,7 @@ html.theme-dark .emo-fold .emo-arw{color:#64748b}
             </div>
 
             <p class="text-[10.5px] text-indigo-700 bg-indigo-50/70 border border-indigo-100 rounded-lg px-2.5 py-1.5 leading-snug">
-              선택한 <b>의인화 스타일 · 화풍</b>은 영문 지시어로 바뀌어 <b>AI 사물 분석 → 캐릭터 시트 → 24종 생성</b> 프롬프트에 그대로 들어갑니다.
+              선택한 <b>캐릭터 종 · 의인화 스타일 · 화풍 · 말투</b>는 영문 지시어로 바뀌어 <b>AI 사물 분석 → 캐릭터 시트 → 24종 생성</b> 프롬프트에 그대로 들어갑니다.
             </p>
 
             <!-- AI 사물 분석 & 세계관/24종 기획 실행 버튼 -->
@@ -726,6 +741,16 @@ html.theme-dark .emo-fold .emo-arw{color:#64748b}
                 <button onclick="applyTextPackage('hello')" class="preset-btn col-span-2 px-2 py-1.5 rounded-lg bg-white border border-fuchsia-200 text-[11px] font-extrabold text-slate-700">🙇 안부·인사</button>
               </div>
               <p class="text-[10px] text-fuchsia-800/80 leading-snug">이미 만든 컷이 있으면 완성본까지 다시 그려 바로 반영합니다.</p>
+            </div>
+
+            <!-- 🗣 v6 — 대사 말투·성격 8종 -->
+            <div class="rounded-xl border border-sky-200 bg-sky-50/50 p-2.5 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-1">
+                <h4 class="text-[11px] font-black text-sky-900">🗣 대사 말투·성격 8종</h4>
+                <span id="tone-status" class="text-[10px] font-bold text-sky-700">다정·귀염</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5" id="tone-chips"><!-- JS 렌더링 --></div>
+              <p class="text-[10px] text-sky-800/80 leading-snug">말투를 고르면 <b>24종 대사가 그 말투로 바뀌고</b>, AI 기획 요청에도 <b>어미·톤 지시</b>가 함께 들어갑니다.</p>
             </div>
             <div id="reference-status" class="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5">
               <span class="text-indigo-600">🔒 기준 캐릭터</span>
@@ -2028,6 +2053,94 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     function anthroPromptEn() { return styleEn('select-anthro', 'super-deformed 2-head-tall chibi body with tiny arms and legs'); }
     function artStylePromptEn() { return styleEn('select-artstyle', 'warm hand-drawn crayon and colored-pencil texture'); }
 
+    /* 🐾 v6 — 선택한 종·말투를 프롬프트 조각으로 바꾼다 */
+    function speciesPreset() {
+      for (var i = 0; i < SPECIES_PRESETS.length; i++) if (SPECIES_PRESETS[i].key === state.species) return SPECIES_PRESETS[i];
+      return SPECIES_PRESETS[0];
+    }
+    function speciesPrompt() { return speciesPreset().en || ''; }
+    function speciesKoLabel() { return speciesPreset().ko || ''; }
+    function speciesClauseEn() {
+      var sp = speciesPrompt();
+      return sp ? ' Character species (ears, nose, tail, body shape): ' + sp + '.' : '';
+    }
+    function tonePreset() {
+      for (var i = 0; i < TONE_PRESETS.length; i++) if (TONE_PRESETS[i].key === state.tone) return TONE_PRESETS[i];
+      return TONE_PRESETS[0];
+    }
+    function toneClauseEn() {
+      var t = tonePreset();
+      return t.en ? ' Character personality vibe: ' + t.en + '.' : '';
+    }
+    function toneAsTheme() {
+      var t = tonePreset();
+      if (!t.guide) return '';
+      return ('말투·성격: ' + t.label + ' — ' + t.guide).slice(0, 118);
+    }
+
+    function renderSpeciesChips() {
+      var box = document.getElementById('species-chips');
+      if (!box) return;
+      box.innerHTML = SPECIES_PRESETS.map(function (p) {
+        var parts = p.label.split(' ');
+        var icon = parts.shift();
+        var name = parts.join(' ');
+        return '<button type="button" data-species="' + p.key + '" onclick="applySpecies(\'' + p.key + '\')" class="dna-chip ' + (state.species === p.key ? 'active ' : '') +
+          'px-1 py-1.5 rounded-lg bg-white border border-amber-200 text-[11px] font-extrabold text-slate-700 flex flex-col items-center gap-0.5">' +
+          '<span class="text-sm leading-none">' + icon + '</span><span class="text-[10px] leading-tight">' + name + '</span></button>';
+      }).join('');
+      var st = document.getElementById('species-status');
+      if (st) st.textContent = state.species === 'none' ? '사진 그대로 · 종 미지정' : (speciesKoLabel() + ' DNA 연동 중');
+    }
+
+    function applySpecies(key) {
+      var ok = false;
+      for (var i = 0; i < SPECIES_PRESETS.length; i++) if (SPECIES_PRESETS[i].key === key) ok = true;
+      if (!ok) return;
+      state.species = key;
+      renderSpeciesChips();
+      var p = speciesPreset();
+      showToast(p.key === 'none'
+        ? '종 지정을 해제했습니다 — 사진 속 사물 그대로 갑니다.'
+        : p.label + ' 종 DNA(귀·코·꼬리·체형)가 캐릭터 시트·생성 프롬프트에 실립니다.', 'info');
+    }
+
+    function renderToneChips() {
+      var box = document.getElementById('tone-chips');
+      if (!box) return;
+      box.innerHTML = TONE_PRESETS.map(function (t) {
+        return '<button type="button" data-tone="' + t.key + '" onclick="applyTone(\'' + t.key + '\')" class="tone-chip ' + (state.tone === t.key ? 'active ' : '') +
+          'px-2 py-1.5 rounded-lg bg-white border border-sky-200 text-[11px] font-extrabold text-slate-700 text-left">' + t.label + '</button>';
+      }).join('');
+      var st = document.getElementById('tone-status');
+      if (st) st.textContent = state.tone === 'none' ? '지정 안 함' : tonePreset().label;
+    }
+
+    async function applyTone(key) {
+      var ok = false;
+      for (var i = 0; i < TONE_PRESETS.length; i++) if (TONE_PRESETS[i].key === key) ok = true;
+      if (!ok) return;
+      state.tone = key;
+      renderToneChips();
+      var t = tonePreset();
+      if (!t.texts || !t.texts.length) {
+        showToast('말투 지정을 해제했습니다 — 대사는 지금 그대로 둡니다.', 'info');
+        return;
+      }
+      t.texts.forEach(function (txt, i) {
+        var slot = state.slots[i];
+        if (slot) slot.settings.text = txt;
+      });
+      renderPlanSlotsGrid();
+      renderTextAuditTable();
+      loadSelectedSlotToStudio();
+      if (state.slots.some(function (s) { return !!s.rawImageUrl; })) {
+        showToast(t.label + ' 말투로 24컷 완성본을 다시 그립니다...', 'info');
+        await renderAllSlots({ label: t.label + ' 말투 반영 중...' });
+      }
+      showToast(t.label + ' 말투로 24종 대사를 채쳤습니다 · AI 기획에도 같은 톤 지시가 들어갑니다.', 'success');
+    }
+
     // 서버 프록시 — 관제탑 Vercel(content-ai)이 Gemini 키를 대신 쓴다. 브라우저에 키를 두지 않는다.
     const API_BASE = 'https://stock-dashboard-live-bice.vercel.app';
     const CONTENT_AI = API_BASE + '/api/content-ai';
@@ -2089,6 +2202,91 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
     ];
 
     const EMO_TAGS = ['인사', '기쁨', '감사', '사과', '웃음', '부정', '분노', '슬픔', '놀람', '애교', '일상'];
+
+    // =========================================================================
+    // v6 — 캐릭터·동물 종 12종 · 말투·성격 8종
+    //   종 DNA(en)는 캐릭터 시트·24종 생성·AI 기획 프롬프트에 실제로 들어가고,
+    //   말투는 AI 기획 지시(guide) + 기본 폴백 대사 세트(texts) 양쪽에 반영된다.
+    // =========================================================================
+    const SPECIES_PRESETS = [
+      { key: 'none', label: '📷 사진 그대로', ko: '', en: '' },
+      { key: 'dog', label: '🐶 강아지', ko: '강아지(말티즈·시바)',
+        en: 'a cute Maltese/Shiba puppy dog: floppy fluffy cream-white ears, small round black button nose, curled fluffy tail, compact fuzzy puppy body with short stubby legs' },
+      { key: 'cat', label: '🐱 고양이', ko: '고양이',
+        en: 'a cute cat: pointed triangular ears with pink inner ear, tiny pink triangle nose, long slim curved tail, sleek rounded body with soft paws' },
+      { key: 'bear', label: '🐻 곰', ko: '곰',
+        en: 'a cute bear: small round ears on top of the head, large round brown nose, stubby round tail, chubby heavy round body' },
+      { key: 'rabbit', label: '🐰 토끼', ko: '토끼',
+        en: 'a cute rabbit: long upright ears with pink inner ear, tiny twitching nose, small fluffy cotton-ball tail, pear-shaped fuzzy body' },
+      { key: 'duck', label: '🦆 오리', ko: '오리',
+        en: 'a cute duck: small rounded head, wide flat orange bill, short curly tail, plump oval body with small wing stubs and orange webbed feet' },
+      { key: 'frog', label: '🐸 개구리', ko: '개구리',
+        en: 'a cute frog: two big bulging eyes on top of the head, wide smiling mouth, no tail, squat round green body with long folded hind legs' },
+      { key: 'hamster', label: '🐹 햄스터', ko: '햄스터',
+        en: 'a cute hamster: tiny round ears, small pink nose, stubby tail, plump cheek-pouch body with big front teeth and tiny paws' },
+      { key: 'panda', label: '🐼 판다', ko: '판다',
+        en: 'a cute panda: round black ears, black eye patches, small black nose, short black tail, chubby white-and-black round body' },
+      { key: 'fox', label: '🦊 여우', ko: '여우',
+        en: 'a cute fox: large pointed triangular ears with dark tips, slender pointed snout with black nose, big bushy tail with white tip, slim agile body' },
+      { key: 'dino', label: '🦕 공룡', ko: '공룡',
+        en: 'a cute baby dinosaur: small rounded head with tiny horn-like spikes, thick tapered tail, chubby round body with short arms and small back plates' },
+      { key: 'penguin', label: '🐧 펭귄', ko: '펭귄',
+        en: 'a cute penguin: small round head, short orange beak, tiny tail, plump upright tuxedo body with white belly and orange webbed feet' },
+      { key: 'monkey', label: '🐵 원숭이', ko: '원숭이',
+        en: 'a cute monkey: big round ears on the sides of the head, wide flat nose, long curled tail, slim playful body with long arms and a light beige face' }
+    ];
+
+    const TONE_PRESETS = [
+      { key: 'none', label: '⚪ 지정 안 함', guide: '', en: '', texts: [] },
+      {
+        key: 'warm', label: '🥰 다정·귀염',
+        guide: '다정하고 귀여운 반말. 문장 끝을 "~용", "~당", "~해~", "~할게용" 같은 부드러운 애미로 맺고, 하트(♥)나 애정 어린 말을 한 번씩 넣습니다.',
+        en: 'warm sweet cute affectionate mood',
+        texts: ['안녕하세용♥', '왔어용~ 기다렸어용', '잘 부탁드려용~', '완전 좋아용!', '네네 알겠어용', '오키오키~!', '최고최고 좋아용', '고마워용♥', '복 받으실 거예요~', '미안해용..', '잘못했어용..', 'ㅋㅋㅋㅋ 귀여워', '헐 대박이야~', '우와아 신기해', '에헤헤~', '아 진짜 왜애~', '안 돼용!!', '부들부들..', '점심 뭐 먹지~', '잘 자용🌙', '두근두근..', '하트 뿅뿅!!', '비 맞았어용..', '다시 활짝!']
+      },
+      {
+        key: 'cool', label: '😎 시크·쿨',
+        guide: '시크하고 무뚝뚝한 반말. "~임", "~ㅇㅇ", "~음", "흥", "됐어"처럼 짧게 끊고, 감정을 드러내지 않는 담백한 어미를 씁니다.',
+        en: 'cool deadpan calm unimpressed mood',
+        texts: ['왔냐', '부르지 마', '가자', '좋네', 'ㅇㅇ', '알겠음', '나쁘지 않아', '고맙긴', '덕이라도 봐', '미안', '내 잘못임', 'ㅋ', '흠', '대충 알겠어', '흥', '시키지 마', '안 해', '짜증나', '배 안 고파', '잘 자', '심장이 뛰네', '뭐야 이거', '비 오네', '상관없어']
+      },
+      {
+        key: 'boomer', label: '👴 아재·개그',
+        guide: '아재 개그 반말. "~했지예", "~라니까", "허허", "아이고" 같은 옛날식 어미와 유행어, 말끝 흘리기를 섞습니다.',
+        en: 'goofy dad-joke cheerful ahjussi mood',
+        texts: ['안녕하시지예~', '어이 거기 누구야~', '허허 가시지예', '완전 죽여주지예', '오케이 오케이~', '그래그래 알았어', '인정이지예', '고맙지예 고맙지예', '덕 좀 보게~', '쏘리쏘리~', '내가 못했지예', '크크크 웃기지예', '아이고 이거 뭐야', '이야~ 대단혀', '허허허~', '이거 뭐야 진짜', '그건 좀 아니지예', '아이고 속 터져', '점심 뭐 묵지예', '어여 자러 가이소', '어어 이거 뭐지', '이게 웬일이야~', '비 다 맞았네', '그래도 살았네 허허']
+      },
+      {
+        key: 'baby', label: '👶 유아·애교',
+        guide: '5살 아기 말투. "~해써", "~할거야아", "~쨔"처럼 발음을 늘어뜨리고, "나"를 주어로 쓰는 애교 섞인 어미를 씁니다.',
+        en: 'innocent toddler playful baby mood',
+        texts: ['안녀엉~', '나 왔쨔!', '같이 놀자아', '조아조아!', '응! 알겠써!', '오키오키~', '나 최고지!', '고마워어♥', '칭찬해줘어', '미안해어..', '잘못했써어..', '히히히히', '워어~ 신기해!', '우와아아~', '에헤헤에~', '아이 뭐야아!', '시어어!!', '히잉..', '밥 묵어어!', '잘 잘게에🌙', '두근두근~', '하트 빵빵!', '비 와아..', '씩씩해졌어!']
+      },
+      {
+        key: 'office', label: '💼 직장인·현타',
+        guide: '직장인 존댓말 + 현타. "~습니다..", "~네요..", "출근하기 싫다"처럼 예의는 갖추되 무기력한 말줄임과 한숨을 넣습니다.',
+        en: 'tired exhausted office worker mood',
+        texts: ['안녕하십니까..', '출근했습니다..', '퇴근하고 싶습니다', '좋습니다..', '네 알겠습니다', '처리했습니다', '좋은 것 같습니다', '감사합니다..', '덕분입니다..', '죄송합니다..', '제 잘못입니다', 'ㅋㅋ.. (무표정)', '네? 진짜요?', '와.. 대단하세요', '그럴 수 있죠..', '그건 좀 아니죠', '어렵습니다..', '하.. 출근 싫다', '점심 뭐 드실래요', '퇴근입니다.. 잘 자요', '두근.. 설렘인가', '월급날입니다!!', '비 맞았습니다..', '살아났습니다..']
+      },
+      {
+        key: 'satoori', label: '🌊 사투리(부산·경상)',
+        guide: '부산·경상 사투리 반말. "~했능교", "~뭐하노", "~아이가", "아따", "와이라노" 같은 어미를 자연스럽게 씁니다.',
+        en: 'cheerful lively Busan dialect mood',
+        texts: ['안녕하이소~', '와 왔노~', '가 보자꾸나~', '완전 좋다 아이가', '알겠는데이~', '오케이라꼬~', '이거 최고다 아이가', '고맙다 아이가♥', '복 받을 긴데이~', '미안하네예..', '내 잘못이다예', 'ㅋㅋㅋ 웃기네예', '아따 뭐라노?', '우와~ 대박이다', '에헤이~', '아따 와 그라노!', '안 된다 아이가', '부들부들하네예', '점심 뭐 묵노?', '잘 자라예🌙', '두근두근하네예', '하트 팡팡!', '비 다 맞았네예..', '부활했다 아이가!']
+      },
+      {
+        key: 'chu2', label: '🌀 중2병·과몰입',
+        guide: '중2병 과몰입 반말. "~인 것이다", "크크", "~하겠다", "흑염룡"처럼 세계관에 과몰입한 장엄한 어미와 자기 암시를 씁니다.',
+        en: 'dramatic over-the-top chunibyo fantasy mood',
+        texts: ['마침내 강림했다', '기다리고 있었다', '나를 따르라', '이 정도는 쉽다', '명령이다', '크크, 알겠다', '나의 최고 실력이다', '이 은혜 잊지 않는다', '덕을 봐라', '내 실수다..', '어둠이 나를 이겼다', '크크크크 (흑염룡)', '뭐라고?!', '!! (경외)', '흥, 당연하지', '감히 나에게!', '거부하겠다', '분노가 끓어오른다', '점심은 무엇인가', '달이 아름답군..', '심장이 뛴다..', '흑염룡이 깨어났다', '빗속의 나..', '각성했다']
+      },
+      {
+        key: 'polite', label: '🙇 예의바른 존댓말',
+        guide: '격식 있는 존댓말. "~습니다", "~하겠습니다", "~드리겠습니다"로 끝맺고, 과장 없이 공손한 표현을 씁니다.',
+        en: 'polite formal gentle respectful mood',
+        texts: ['안녕하십니까', '잘 부탁드립니다', '오늘도 수고 많으십니다', '정말 좋습니다', '네, 알겠습니다', '처리하겠습니다', '최고라고 생각합니다', '감사드립니다♥', '복 받으시길 바랍니다', '죄송합니다', '제가 잘못했습니다', '하하, 즐겁습니다', '네? 정말입니까?', '정말 대단하십니다', '과찬이십니다', '어렵습니다만..', '곤란합니다', '참아 보겠습니다', '점심 드시겠습니까?', '편히 주무십시오🌙', '조금 긴장됩니다', '감사한 마음입니다', '비를 맞았습니다', '다시 일어서겠습니다']
+      }
+    ];
 
     // 말풍선 & 감정 도장 10종 (벡터로 그려 기기·브라우저에서 동일하게 보입니다)
     const STAMP_KINDS = [
@@ -2196,6 +2394,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       processedCharCanvas: null,
       dragTarget: null, // { type: 'text' | 'part', index?: number, offsetX, offsetY }
       presetKey: 'basic',
+      species: 'none',   // 🐾 v6 캐릭터·동물 종 12종
+      tone: 'none',      // 🗣 v6 말투·성격 8종
       batchRunning: false,
       batchStop: false,
       // 🎛️ 이미지 엔진 — 'auto'(Gemini 우선 → 무료 폴백) | 'pollinations'(무료 고정)
@@ -2886,12 +3086,24 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         const anthro = document.getElementById('select-anthro').value;
         const artStyle = document.getElementById('select-artstyle').value;
         const cleanup = document.getElementById('toggle-logo-cleanup').checked;
+        const sp = speciesPrompt();
+        const spKo = speciesKoLabel();
+        const tone = tonePreset();
+        const conceptEl = document.getElementById('dna-worldview');
+        const dnaEl = document.getElementById('dna-visual-prompt');
 
         const payload = {
           action: 'emoticon_plan',
           charName: document.getElementById('dna-char-name').value,
-          concept: document.getElementById('dna-worldview').value,
-          visualPrompt: document.getElementById('dna-visual-prompt').value,
+          // 종·말투는 서버가 읽는 필드(concept·visualPrompt·theme)에도 함께 실어 보낸다.
+          concept: spKo ? (conceptEl.value ? conceptEl.value + ' / 종: ' + spKo : '종: ' + spKo) : conceptEl.value,
+          visualPrompt: sp ? ((dnaEl.value ? dnaEl.value : '') + ' Species: ' + sp + '.').trim() : dnaEl.value,
+          species: speciesPreset().key === 'none' ? '' : speciesPreset().label,
+          speciesPrompt: sp,
+          tone: tone.key === 'none' ? '' : tone.label,
+          toneGuide: tone.guide || '',
+          tonePrompt: tone.en || '',
+          theme: toneAsTheme(),
           anthro: anthro,
           artStyle: artStyle,
           anthroPrompt: anthroPromptEn(),
@@ -2952,7 +3164,9 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         const artStyle = document.getElementById('select-artstyle').value;
         const cleanup = document.getElementById('toggle-logo-cleanup').checked;
 
-        const prompt = `Create a clean character turnaround reference sheet on a pure flat white background (#FFFFFF): front view, 3/4 side view, back view, plus 4 cute facial expressions in one row. Character: ${dnaPrompt}. Character body: ${anthroPromptEn()}. Art style: ${artStylePromptEn()}.` +
+        const prompt = `Create a clean character turnaround reference sheet on a pure flat white background (#FFFFFF): front view, 3/4 side view, back view, plus 4 cute facial expressions in one row. Character: ${dnaPrompt}.` +
+          speciesClauseEn() +
+          ` Character body: ${anthroPromptEn()}. Art style: ${artStylePromptEn()}.` +
           (cleanup ? ' Strictly remove any brand logos or real-world text, replace with cute original heart tape or star stickers.' : '') +
           ' No watermark, clean bold sticker line art, consistent colors.';
 
@@ -3032,8 +3246,11 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         const anthro = document.getElementById('select-anthro').value;
         const cleanup = document.getElementById('toggle-logo-cleanup').checked;
 
-        const prompt = `Cute Korean messenger emoticon sticker of this exact character. Character DNA: ${dnaPrompt}. ` +
-          `Character body: ${anthroPromptEn()}. Art style: ${artStylePromptEn()}. Pose and expression: ${slot.prompt} (${slot.desc}).` +
+        const prompt = `Cute Korean messenger emoticon sticker of this exact character. Character DNA: ${dnaPrompt}.` +
+          speciesClauseEn() +
+          ` Character body: ${anthroPromptEn()}. Art style: ${artStylePromptEn()}.` +
+          toneClauseEn() +
+          ` Pose and expression: ${slot.prompt} (${slot.desc}).` +
           (cleanup ? ' Remove all real brand logos and printed text; replace with original heart tape or star stickers.' : '');
 
         const ref = await buildReferencePayload();
@@ -4346,6 +4563,13 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
         slot.settings.text = it.text;
         slot.tag = '';
       });
+      // 🗣 선택한 말투가 있으면 기본 기획의 대사만 그 말투로 덮어쓴다(포즈는 유지)
+      if (key === 'basic' && state.tone && state.tone !== 'none') {
+        const tone = tonePreset();
+        (tone.texts || []).forEach(function (txt, i) {
+          if (state.slots[i]) state.slots[i].settings.text = txt;
+        });
+      }
       renderPlanSlotsGrid();
       renderStudioThumbGrid();
       loadSelectedSlotToStudio();
@@ -4618,7 +4842,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       const picks = state.slots.slice(start, start + 9);
       const poses = picks.map(function (s, i) { return (i + 1) + ') ' + (s.prompt || s.desc || 'cute pose'); }).join(' | ');
       return 'A single 3x3 GRID SHEET — exactly 3 equal columns and 3 equal rows, 9 separate cells, even spacing, no cell borders — showing the SAME cute character 9 times. ' +
-        'Character: ' + dna + '. Character body: ' + body + '. Art style: ' + style + '. ' +
+        'Character: ' + dna + '.' + speciesClauseEn() + ' Character body: ' + body + '. Art style: ' + style + '. ' +
         'Cell poses: ' + poses + '. ' +
         'Each character fully inside its cell with margin, centered, identical face, proportions, palette and thick white sticker outline. ' +
         'Flat vector Korean messenger sticker look, pure solid white #FFFFFF background in every cell, absolutely no text, no numbers, no speech bubbles anywhere.';
@@ -5784,7 +6008,7 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js?v=20261128v5').catch(function () {});
+        navigator.serviceWorker.register('sw.js?v=20261128v6').catch(function () {});
       });
     }
 
@@ -5808,6 +6032,8 @@ Desc: Adorable shy delivery box waiting to be unboxed! 24 daily stickers + fun c
       toggleAICutoutPanel();   // v5 — AI 누끼 진행률 패널
       setMotionScope('current');
       syncMotionPresetUI();
+      renderSpeciesChips();  // 🐾 v6 — 캐릭터·동물 종 12종
+      renderToneChips();     // 🗣 v6 — 말투·성격 8종
       setChatTheme('light');
       updateDoneCount();
       renderBoard();
